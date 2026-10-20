@@ -588,11 +588,19 @@
        probe tip and the lump are a handful of pixels, so the steps that are ABOUT the needle
        showed almost nothing of it. Steps 5-8 therefore default to a closer view. `zoomMul`
        is still the user's own zoom and still wins - this only changes the default. */
-    const box=new THREE.Box3().setFromObject(P.body);
+    /* While the skin is opaque the frame is the whole torso. Once the lump is the subject the
+       frame is the breast itself: fitting the torso keeps the arms in shot and makes the needle
+       a few pixels long. A box around the lump gives roughly a 20 cm view. */
+    const box=new THREE.Box3();
+    if(A.lumpHi>0.3){ box.setFromCenterAndSize(LUMP_WORLD, new THREE.Vector3(0.20,0.20,0.16)); }
+    else { box.setFromObject(P.body); }
     if(A.xray>0.02){ [P.lesion,P.gland].forEach(g=>{ if(g) box.union(new THREE.Box3().setFromObject(g)); }); }
     if(A.probe>0.05) box.union(new THREE.Box3().setFromObject(P.probe));
     if(P.dressing.visible) box.union(new THREE.Box3().setFromObject(P.dressing));
-    const dTarget=Math.max(0.62, fitDist(box)*(1-0.28*A.lumpHi)*zoomMul*(1-0.34*proc));
+    /* The floor keeps the camera out of the body on wide steps; on the close-ups the box is
+       already small, so a 0.62 m floor would undo the framing entirely. */
+    const minD = A.lumpHi>0.3 ? 0.22 : 0.62;
+    const dTarget=Math.max(minD, fitDist(box)*(1-0.2*A.lumpHi)*zoomMul*(1-0.25*proc));
     dist+=(dTarget-dist)*Math.min(1,dt*3.0);
     box.getCenter(_lookT);
     /* Once the lump is the subject, aim at it rather than at the middle of the torso: the
