@@ -1,0 +1,13 @@
+# Rendered PCM and per-take artefacts; the shipped mp3s are committed
+audio/*/leaflet/_neural_wav/
+audio/*/*.wav
+*.previous.mp3
+
+# Scratch
+*.png
+*.blend
+*.blend1
+.DS_Store
+
+# Only the model revision the build inlines
+model/*.glb.bak*

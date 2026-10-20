@@ -1,0 +1,274 @@
+:root{
+  --bg:#0a0f17; --bg2:#101822; --card:#151f2e; --card2:#1c2839;
+  --ink:#f2f5fa; --ink2:#bac8dd; --ink3:#8499b5;
+  --accent:#d4a853; --accent2:#5eb8c9; --warm:#ffb454; --good:#41d18a;
+  --warn:#ff8a5c; --line:rgba(140,170,210,.12);
+  --fs:19px; --radius:18px; --maxw:1000px;
+
+  /* elevation scale — soft, cool-toned depth for a calm clinical feel */
+  --shadow-s:0 1px 2px rgba(0,0,0,.32),0 1px 3px rgba(0,0,0,.24);
+  --shadow-m:0 4px 14px rgba(0,0,0,.38),0 2px 5px rgba(0,0,0,.26);
+  --shadow-l:0 18px 44px rgba(0,0,0,.48),0 6px 16px rgba(0,0,0,.32);
+
+  /* radius scale */
+  --r-sm:8px; --r-md:14px; --r-lg:22px;
+
+  /* motion */
+  --ease:.18s cubic-bezier(.2,.0,.18,1)
+}
+html[data-size="large"]{--fs:23px}
+html[data-size="xl"]{--fs:28px}
+html[data-contrast="high"]{
+  --bg:#000;--bg2:#000;--card:#0a0a0a;--card2:#161616;--ink:#fff;--ink2:#d4e0f0;
+  --ink3:#a0b8d4;--accent:#7cc6ff;--accent2:#a8dbff;--line:rgba(180,200,230,.25);--warm:#ffd479;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:var(--fs);line-height:1.65;-webkit-text-size-adjust:100%;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility}
+::selection{background:rgba(212,168,83,.28);color:var(--ink)}
+a{color:var(--accent2)}
+*{font-variant-numeric:tabular-nums}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px 120px}
+/* thin custom scrollbars — barely visible, removes the jarring default bar */
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-track{background:var(--bg2)}
+*::-webkit-scrollbar-thumb{background:var(--card2);border-radius:4px;border:2px solid var(--bg2)}
+*{scrollbar-width:thin;scrollbar-color:var(--card2) var(--bg2)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);
+  white-space:nowrap}
+
+/* ---------------------------------------------------------------- top bar */
+.bar{position:sticky;top:0;z-index:60;background:rgba(11,18,32,.94);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+  box-shadow:var(--shadow-s)}
+html[data-contrast="high"] .bar{background:#000}
+.bar .inner{max-width:var(--maxw);margin:0 auto;padding:9px 20px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-weight:700;font-size:calc(var(--fs)*.92);margin-right:auto;
+  letter-spacing:.2px}
+.ctrls{display:flex;gap:8px;flex-wrap:wrap}
+.ctrl{background:var(--card2);color:var(--ink);border:1px solid var(--line);
+  border-radius:999px;padding:8px 15px;font-size:calc(var(--fs)*.78);cursor:pointer;
+  font-family:inherit;min-height:44px;font-weight:600;
+  transition:background var(--ease),border-color var(--ease),transform var(--ease),box-shadow var(--ease)}
+.ctrl:hover{background:var(--card);border-color:var(--accent2);box-shadow:var(--shadow-m)}
+.ctrl:active{transform:translateY(1px)}
+.ctrl[aria-pressed="true"]{background:var(--accent);color:#04121f;
+  border-color:var(--accent);font-weight:700;box-shadow:var(--shadow-s)}
+a:focus-visible,button:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px}
+
+
+/* Language picker, and the font stacks each language needs. The system stacks are deliberate:
+   Tamil and Han both need real font support, and every target device (iOS, Android, macOS,
+   Windows) ships one - bundling Noto would add megabytes to a page already carrying a model. */
+.langpick{display:inline-flex;align-items:center;gap:8px;padding:3px 3px 3px 10px;
+  border:2px solid var(--accent2);border-radius:999px;background:var(--card2);
+  box-shadow:0 2px 0 rgba(0,0,0,.04)}
+.langpick::before{content:"🌐";font-size:calc(var(--fs)*.95);line-height:1}
+.langpick select{background:transparent;color:var(--ink);border:0;
+  padding:8px 26px 8px 2px;font-family:inherit;font-size:calc(var(--fs)*.86);
+  min-height:40px;cursor:pointer;font-weight:700;letter-spacing:.2px}
+.langpick select:hover{color:var(--accent2)}
+.langpick:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+html[lang="ta"] body{font-family:"Noto Sans Tamil","Latha","Tamil Sangam MN",system-ui,sans-serif}
+html[lang="zh"] body,html[lang="yue"] body,html[lang="nan"] body{font-family:"PingFang SC","PingFang HK","Noto Sans SC","Noto Sans TC","Microsoft YaHei",system-ui,sans-serif}
+
+/* ------------------------------------------------------------------- hero */
+.hero{padding:48px 0 26px}
+.kicker{color:var(--accent2);font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;font-size:calc(var(--fs)*.72);margin-bottom:14px}
+h1{font-size:calc(var(--fs)*1.9);line-height:1.16;margin:0 0 16px;letter-spacing:-.6px;text-wrap:balance}
+h1 span{color:var(--accent2)}
+.lede{color:var(--ink2);font-size:calc(var(--fs)*1.04);margin:0;text-wrap:pretty}
+.facts{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+.fact{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:14px 18px;min-width:140px;box-shadow:var(--shadow-s);
+  transition:transform var(--ease),box-shadow var(--ease)}
+.fact:hover{transform:translateY(-2px);box-shadow:var(--shadow-m)}
+.fact .k{color:var(--ink3);font-size:calc(var(--fs)*.7);text-transform:uppercase;
+  letter-spacing:1px;font-weight:700}
+.fact .v{font-size:calc(var(--fs)*.95);font-weight:700;margin-top:3px}
+
+/* ----------------------------------------------------------------- short version */
+.shortcut{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:6px 20px;margin-top:26px;box-shadow:var(--shadow-s)}
+.shortcut summary{cursor:pointer;font-weight:700;padding:14px 0;
+  font-size:calc(var(--fs)*1.0);color:var(--accent2)}
+.shortcut[open] summary{border-bottom:1px solid var(--line);margin-bottom:14px}
+.shortcut ul{margin-top:0}
+
+/* ------------------------------------------------------------------ sections */
+section{margin:38px 0;padding-top:6px;scroll-margin-top:80px}
+section + section{border-top:1px solid var(--line);margin-top:52px;padding-top:0}
+h2{font-size:calc(var(--fs)*1.28);margin:0 0 12px;letter-spacing:-.3px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h2 .num{flex:0 0 auto;width:34px;height:34px;border-radius:10px;background:var(--accent);
+  color:#04121f;display:grid;place-items:center;font-size:calc(var(--fs)*.9);font-weight:800;
+  box-shadow:var(--shadow-s)}
+h3{font-size:calc(var(--fs)*1.06);margin:24px 0 10px}
+p{margin:0 0 15px;color:var(--ink2)}
+p strong,li strong{color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:24px;box-shadow:var(--shadow-m)}
+ul{margin:0 0 15px;padding-left:22px;color:var(--ink2)}
+li{margin:0 0 9px}
+.note{border-left:4px solid var(--accent);padding:14px 18px;background:var(--bg2);
+  border-radius:0 12px 12px 0;margin:18px 0;color:var(--ink2);
+  font-size:calc(var(--fs)*.93);box-shadow:var(--shadow-s)}
+/* Sets apart the risk and options wording from the prose around it. */
+.sheet-note{border-left:4px solid var(--warm);background:#221d12;padding:16px 18px;
+  border-radius:0 12px 12px 0;margin:16px 0;color:var(--ink);box-shadow:var(--shadow-s)}
+html[data-contrast="high"] .sheet-note{background:#141414;border-left-color:#ffcc66}
+
+/* ------------------------------------------------------------------ 3D stage */
+.stage{position:relative;background:radial-gradient(120% 100% at 50% 0%,#182740,#0a111f);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  width:100%;aspect-ratio:16/10;min-height:320px;touch-action:none;
+  box-shadow:var(--shadow-l)}
+.stage:before{content:"";position:absolute;inset:0;pointer-events:none;
+  border-radius:var(--radius);box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+/* The canvas is what actually receives a touch, and `touch-action` is read from the element the
+   gesture STARTS on - it is not inherited from .stage. Without this the browser claims a one-finger
+   drag for scrolling and fires pointercancel, so the model never turns on a phone, and a pinch
+   zooms the page instead of the model. Also suppress text selection and the long-press callout
+   while dragging, which otherwise interrupts a rotate mid-gesture. */
+#gl{display:block;width:100%;height:100%;touch-action:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+/* The stage now holds ONLY the canvas and the anatomy callouts. */
+.stage .scene-labels{position:absolute;inset:0;pointer-events:none;z-index:3}
+.scene-label{position:absolute;left:0;top:0;background:rgba(6,12,24,.88);
+  border:1px solid rgba(120,170,255,.45);border-radius:8px;padding:3px 9px;
+  font-size:calc(var(--fs)*.66);color:#d6e6ff;white-space:nowrap}
+.scene-label--sm{font-size:calc(var(--fs)*.5);padding:2px 6px;border-radius:6px}
+
+/* The chrome sits BELOW the canvas. It used to be absolutely positioned over it, with the step
+   bubble across the bottom of the stage - exactly where the needle moves, so the passes happened
+   behind the text. Nothing overlays the model now except the callouts, which point at structures. */
+.stage-bar{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;margin-top:12px}
+.step-label{min-height:44px;background:rgba(10,15,23,.72);border:1px solid var(--line);
+  border-radius:12px;padding:11px 15px;font-size:calc(var(--fs)*.82);
+  flex:1 1 260px;box-shadow:var(--shadow-s)}
+.step-label b{color:var(--accent2)}
+.stage-meta{display:flex;gap:8px 18px;flex-wrap:wrap;align-items:center;margin-top:10px;
+  font-size:calc(var(--fs)*.7);color:var(--ink2)}
+.badge{border:1px solid var(--line);border-radius:999px;padding:5px 13px;
+  background:var(--bg2);box-shadow:var(--shadow-s);white-space:nowrap}
+.legend{display:flex;gap:6px 16px;flex-wrap:wrap;align-items:center}
+.legend div{display:flex;align-items:center;white-space:nowrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;
+  margin-right:7px;vertical-align:middle}
+.play{background:var(--accent);color:#04121f;border:0;border-radius:12px;
+  padding:13px 24px;font-size:calc(var(--fs)*.85);font-weight:800;cursor:pointer;
+  font-family:inherit;min-height:48px;box-shadow:var(--shadow-m);
+  transition:transform var(--ease),box-shadow var(--ease)}
+.play:hover{transform:translateY(-1px);box-shadow:var(--shadow-l)}
+.play:active{transform:translateY(0)}
+.play:disabled{opacity:.45;cursor:default;box-shadow:none}
+.steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.stepchip{background:var(--card2);color:var(--ink2);border:1px solid var(--line);
+  border-radius:var(--r-sm);padding:10px 14px;font-size:calc(var(--fs)*.78);cursor:pointer;
+  font-family:inherit;text-align:left;min-height:44px;font-weight:600;
+  transition:background var(--ease),border-color var(--ease),transform var(--ease),box-shadow var(--ease)}
+.stepchip:hover{background:var(--card);border-color:var(--accent2);color:var(--ink)}
+.stepchip:active{transform:translateY(1px)}
+.stepchip[aria-current="true"]{background:var(--accent);color:#04121f;
+  border-color:var(--accent);font-weight:800;box-shadow:var(--shadow-s)}
+/* ---------------------------------------------------------------- nav row */
+.stepnav{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.navbtn{min-width:44px;min-height:44px;padding:10px 16px;background:var(--card2);
+  color:var(--ink);border:1px solid var(--line);border-radius:var(--r-sm);
+  font-size:calc(var(--fs)*.8);font-weight:600;cursor:pointer;font-family:inherit;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  transition:background var(--ease),border-color var(--ease),transform var(--ease),box-shadow var(--ease)}
+.navbtn:hover{background:var(--card);border-color:var(--accent2);box-shadow:var(--shadow-m)}
+.navbtn:active{transform:translateY(1px)}
+.navbtn:disabled,.navbtn[aria-disabled="true"]{opacity:.45;cursor:default;
+  pointer-events:none;background:var(--card2);color:var(--ink3)}
+.stepcount{color:var(--ink3);font-size:calc(var(--fs)*.8);white-space:nowrap}
+#btnSound[aria-pressed="true"]{background:var(--accent);color:#04121f;
+  border-color:var(--accent);font-weight:700;box-shadow:var(--shadow-s)}
+
+/* ------------------------------------------------------------------- timeline */
+.tl{position:relative;padding-left:34px}
+.tl:before{content:"";position:absolute;left:11px;top:6px;bottom:6px;width:2px;
+  background:var(--line)}
+.tl .item{position:relative;margin-bottom:22px}
+.tl .item:before{content:"";position:absolute;left:-29px;top:6px;width:14px;height:14px;
+  border-radius:50%;background:var(--accent);border:3px solid var(--bg)}
+.tl .item.good:before{background:var(--good)}
+.tl .item.warn:before{background:var(--warn)}
+.tl .when{font-weight:800;color:var(--ink)}
+.tl .what{color:var(--ink2)}
+
+/* ------------------------------------------------------------------ risk grid */
+.riskgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}
+.risk{background:var(--card2);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:18px;box-shadow:var(--shadow-s);transition:transform var(--ease),box-shadow var(--ease)}
+.risk:hover{transform:translateY(-2px);box-shadow:var(--shadow-m)}
+.risk .h{font-weight:800;margin-bottom:6px}
+.risk .d{color:var(--ink2);font-size:calc(var(--fs)*.86)}
+.sev{display:inline-block;margin-top:10px;font-size:calc(var(--fs)*.68);
+  text-transform:uppercase;letter-spacing:1px;font-weight:800;padding:4px 11px;
+  border-radius:999px;border:1px solid currentColor}
+.sev.common{color:#ffd07a}
+.sev.rare{color:#8ce8b4}
+.sev.vrare{color:#d0aaff}
+
+/* ------------------------------------------------------------------ checklist */
+.check{display:flex;gap:12px;align-items:flex-start;padding:13px 0;
+  border-bottom:1px solid var(--line)}
+.check:first-child{border-top:1px solid var(--line)}
+.check:last-child{border-bottom:0}
+.check .box{flex:0 0 22px;height:22px;border:2px solid var(--line);border-radius:6px;
+  margin-top:3px;background:var(--card2)}
+
+/* -------------------------------------------------------------------- sources */
+.sources{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);
+  padding:22px;margin-top:40px;font-size:calc(var(--fs)*.8);color:var(--ink3);
+  box-shadow:var(--shadow-s)}
+.sources h3{color:var(--ink2);margin-top:0}
+.sources li{margin-bottom:6px}
+
+@media print{
+  .bar,.play,.stepchip,.ctrl,.stage{display:none!important}
+  body{background:#fff;color:#000}
+  p,li,.note,.sheet-note{color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+@media (max-width:520px){
+  .stage{aspect-ratio:4/3}
+
+  /* the chrome is below the picture now, so on a phone it just tightens up */
+  .stage-bar{gap:8px;margin-top:10px}
+  .step-label{font-size:calc(var(--fs)*.76);padding:9px 12px}
+  .stage-meta{font-size:calc(var(--fs)*.62);gap:6px 12px}
+  .legend i{width:7px;height:7px;margin-right:5px}
+
+  /* labels shrink on a phone so they take less screen and collide less */
+  .scene-label{font-size:calc(var(--fs)*.5);padding:2px 6px}
+
+  /* nav row sticks to the bottom of the stage area, honouring safe areas */
+  .stepnav{position:sticky;bottom:0;z-index:20;margin-top:auto;
+    padding:10px 0;padding-bottom:calc(10px + env(safe-area-inset-bottom));
+    background:var(--bg);box-shadow:0 -2px 8px rgba(0,0,0,.35)}
+
+  /* long-form rhythm at phone width (still driven entirely by --fs) */
+  .hero{padding:24px 0 14px}
+  h1{font-size:calc(var(--fs)*1.6);margin-bottom:12px}
+  h2{font-size:calc(var(--fs)*1.16);margin-bottom:6px}
+  h3{font-size:calc(var(--fs)*.96);margin:16px 0 6px}
+  section{margin:24px 0}
+  p{margin-bottom:12px}
+  li{margin-bottom:7px}
+  .card{padding:16px}
+  .note{margin:12px 0;padding:10px 14px}
+  .facts{gap:8px;margin-top:16px}
+  .fact{min-width:0;flex:1 1 40%}
+  .riskgrid{grid-template-columns:1fr}
+}
