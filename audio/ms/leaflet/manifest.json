@@ -18,9 +18,9 @@
    "title": "Payudara dan benjolan anda",
    "characters": 222,
    "words": 31,
-   "duration_s": 14.12,
-   "bytes": 85365,
-   "wpm": 131.7,
+   "duration_s": 13.94,
+   "bytes": 84285,
+   "wpm": 133.4,
    "engine": "omnivoice"
   },
   "step02": {
@@ -105,8 +105,8 @@
   }
  },
  "total": {
-  "duration_s": 113.35,
-  "bytes": 685341,
+  "duration_s": 113.17,
+  "bytes": 684261,
   "steps": 9
  }
 }

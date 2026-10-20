@@ -98,23 +98,41 @@
   "k183": "Terdapat kemungkinan bahawa benjolan itu ternyata kanser, dan anda berisiko tidak mendapatkan rawatan yang diperlukan."
  },
  "steps": {
-  "step01": {"t": "Dadan dan benjolan anda",
-   "n": "Benjolan yang doktor anda mahu semak adalah di dalam payudara anda. Kebangan benjolan payudara bukanlah kanser, tetapi sampel adalah satu-satunya cara untuk mengetahui dengan pasti."},
-  "step02": {"t": "Mencuben benjolan dengan ultrasound",
-   "n": "Anda berbaring di atas belakang dengan lengan di atas kepala. Doktor menggerakkan probe ultrasound di atas kulit, dan skrin menunjukkan benjolan, di mana ia berada dan seberapa dalamnya."},
-  "step03": {"t": "Membersihkan kulit",
-   "n": "Kulit di atas benjolan dibersihkan dan kawasan diliputi dengan kain steril. Itu sahaja yang terlibat dalam langkah ini, dan ia mengambil masa sesaat."},
-  "step04": {"t": "Mematikan kawasan",
-   "n": "Anestetik lokal dimasukkan ke dalam kulit dan lebih ke dalam payudara. Ia perit untuk beberapa saat, kemudian kawasan menjadi kebas. Anda kekal sepanjang masa."},
-  "step05": {"t": "Jarum dimasukkan",
-   "n": "Satu keratan kecil dibuat pada kulit. Memerhati skrin, doktor membimbing jarum ke bawah probe dan ke dalam benjolan."},
-  "step06": {"t": "Meng mengambil sampel",
-   "n": "Peranti itu menembak dan mengambil tisu nipis dengan bunyi klik. Ini diulangi beberapa kali, setiap satu klik pantas, hingga cukup tisu telah dikumpulkan."},
-  "step07": {"t": "Klip penanda",
-   "n": "Satu klip sangat kecil ditinggalkan di tempat itu, supaya boleh ditemui semula kemudian. Anda tidak dapat merasanya, dan ia selamat untuk melakukan imbasan MRI dengan ia di tempatnya."},
-  "step08": {"t": "Tekanan, kemudian balutan",
-   "n": "Tekanan dipegang di atas tempat itu untuk menghentikan pendarahan, kemudian balutan dikenakan. Ia kekal di tempatnya dan kering selama 48 jam."},
-  "step09": {"t": "Selepas itu, dan keputusan anda",
-   "n": "Kebas reda dalam beberapa jam. Sakit dan lebam reda dalam beberapa hari hingga dua minggu. Gunakan paracetamol jika anda perlukan, bukan ibuprofen atau aspirin. Keputusan biasanya kira-kira dua minggu."}
+  "step01": {
+   "t": "Payudara dan benjolan anda",
+   "n": "Benjolan yang doktor anda mahu semak adalah di dalam payudara anda. Kebangan benjolan payudara bukanlah kanser, tetapi sampel adalah satu-satunya cara untuk mengetahui dengan pasti."
+  },
+  "step02": {
+   "t": "Mencuben benjolan dengan ultrasound",
+   "n": "Anda berbaring di atas belakang dengan lengan di atas kepala. Doktor menggerakkan probe ultrasound di atas kulit, dan skrin menunjukkan benjolan, di mana ia berada dan seberapa dalamnya."
+  },
+  "step03": {
+   "t": "Membersihkan kulit",
+   "n": "Kulit di atas benjolan dibersihkan dan kawasan diliputi dengan kain steril. Itu sahaja yang terlibat dalam langkah ini, dan ia mengambil masa sesaat."
+  },
+  "step04": {
+   "t": "Mematikan kawasan",
+   "n": "Anestetik lokal dimasukkan ke dalam kulit dan lebih ke dalam payudara. Ia perit untuk beberapa saat, kemudian kawasan menjadi kebas. Anda kekal sepanjang masa."
+  },
+  "step05": {
+   "t": "Jarum dimasukkan",
+   "n": "Satu keratan kecil dibuat pada kulit. Memerhati skrin, doktor membimbing jarum ke bawah probe dan ke dalam benjolan."
+  },
+  "step06": {
+   "t": "Meng mengambil sampel",
+   "n": "Peranti itu menembak dan mengambil tisu nipis dengan bunyi klik. Ini diulangi beberapa kali, setiap satu klik pantas, hingga cukup tisu telah dikumpulkan."
+  },
+  "step07": {
+   "t": "Klip penanda",
+   "n": "Satu klip sangat kecil ditinggalkan di tempat itu, supaya boleh ditemui semula kemudian. Anda tidak dapat merasanya, dan ia selamat untuk melakukan imbasan MRI dengan ia di tempatnya."
+  },
+  "step08": {
+   "t": "Tekanan, kemudian balutan",
+   "n": "Tekanan dipegang di atas tempat itu untuk menghentikan pendarahan, kemudian balutan dikenakan. Ia kekal di tempatnya dan kering selama 48 jam."
+  },
+  "step09": {
+   "t": "Selepas itu, dan keputusan anda",
+   "n": "Kebas reda dalam beberapa jam. Sakit dan lebam reda dalam beberapa hari hingga dua minggu. Gunakan paracetamol jika anda perlukan, bukan ibuprofen atau aspirin. Keputusan biasanya kira-kira dua minggu."
+  }
  }
 }
