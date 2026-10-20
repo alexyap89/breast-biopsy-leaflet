@@ -1,0 +1,112 @@
+{
+ "engine": "omnivoice",
+ "voice": "OmniVoice k2-fsa/OmniVoice, one cloned reference voice for every step",
+ "files": [
+  "audio/ms/leaflet/step01.mp3",
+  "audio/ms/leaflet/step02.mp3",
+  "audio/ms/leaflet/step03.mp3",
+  "audio/ms/leaflet/step04.mp3",
+  "audio/ms/leaflet/step05.mp3",
+  "audio/ms/leaflet/step06.mp3",
+  "audio/ms/leaflet/step07.mp3",
+  "audio/ms/leaflet/step08.mp3",
+  "audio/ms/leaflet/step09.mp3"
+ ],
+ "steps": {
+  "step01": {
+   "step": 1,
+   "title": "Payudara dan benjolan anda",
+   "characters": 222,
+   "words": 31,
+   "duration_s": 14.12,
+   "bytes": 85365,
+   "wpm": 131.7,
+   "engine": "omnivoice"
+  },
+  "step02": {
+   "step": 2,
+   "title": "Mencuben benjolan dengan ultrasound",
+   "characters": 234,
+   "words": 34,
+   "duration_s": 14.8,
+   "bytes": 89469,
+   "wpm": 137.8,
+   "engine": "omnivoice"
+  },
+  "step03": {
+   "step": 3,
+   "title": "Membersihkan kulit",
+   "characters": 180,
+   "words": 27,
+   "duration_s": 10.79,
+   "bytes": 65277,
+   "wpm": 150.1,
+   "engine": "omnivoice"
+  },
+  "step04": {
+   "step": 4,
+   "title": "Mematikan kawasan",
+   "characters": 189,
+   "words": 28,
+   "duration_s": 11.95,
+   "bytes": 72189,
+   "wpm": 140.6,
+   "engine": "omnivoice"
+  },
+  "step05": {
+   "step": 5,
+   "title": "Jarum dimasukkan",
+   "characters": 145,
+   "words": 22,
+   "duration_s": 9.24,
+   "bytes": 55989,
+   "wpm": 142.9,
+   "engine": "omnivoice"
+  },
+  "step06": {
+   "step": 6,
+   "title": "Meng mengambil sampel",
+   "characters": 183,
+   "words": 27,
+   "duration_s": 11.59,
+   "bytes": 70029,
+   "wpm": 139.8,
+   "engine": "omnivoice"
+  },
+  "step07": {
+   "step": 7,
+   "title": "Klip penanda",
+   "characters": 208,
+   "words": 32,
+   "duration_s": 13.08,
+   "bytes": 79101,
+   "wpm": 146.8,
+   "engine": "omnivoice"
+  },
+  "step08": {
+   "step": 8,
+   "title": "Tekanan, kemudian balutan",
+   "characters": 180,
+   "words": 26,
+   "duration_s": 11.78,
+   "bytes": 71325,
+   "wpm": 132.4,
+   "engine": "omnivoice"
+  },
+  "step09": {
+   "step": 9,
+   "title": "Selepas itu, dan keputusan anda",
+   "characters": 255,
+   "words": 37,
+   "duration_s": 16.0,
+   "bytes": 96597,
+   "wpm": 138.8,
+   "engine": "omnivoice"
+  }
+ },
+ "total": {
+  "duration_s": 113.35,
+  "bytes": 685341,
+  "steps": 9
+ }
+}

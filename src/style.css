@@ -272,3 +272,9 @@ html[data-contrast="high"] .sheet-note{background:#141414;border-left-color:#ffc
   .fact{min-width:0;flex:1 1 40%}
   .riskgrid{grid-template-columns:1fr}
 }
+
+/* --------------------------------------------------------------- footer --- */
+.foot{margin:40px 0 0;padding:22px 0 8px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:calc(var(--fs)*.7);line-height:1.55}
+.foot p{margin:0 0 8px}
+.foot a{color:inherit;text-decoration:underline;text-underline-offset:2px}
