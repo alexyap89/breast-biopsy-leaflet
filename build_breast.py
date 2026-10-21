@@ -150,7 +150,17 @@ entry  = lump + Vector((-0.012, 0.048, 0.030))   # screen-below the lump (see no
 tip    = lump + (lump - entry).normalized() * 0.009   # just through the lump, not across the whole breast
 d      = (tip - entry).normalized()
 
-cyl("needle__shaft", entry - d*0.028, tip, 0.0022, METAL)
+# A core-biopsy needle has a bevel tip, not a blunt end: the reference animation shows a
+# sharp angled point. Shaft stops short and a short cone finishes it.
+bevel_base = tip - d*0.005
+cyl("needle__shaft", entry - d*0.028, bevel_base, 0.0022, METAL)
+bpy.ops.mesh.primitive_cone_add(radius1=0.0022, radius2=0.0, depth=0.005,
+                                location=bevel_base + d*0.0025)
+_bev = bpy.context.active_object
+_bev.name = "needle__bevel"
+_bev.rotation_mode = 'QUATERNION'; _bev.rotation_quaternion = d.to_track_quat('Z','Y')
+_bev.data.materials.append(METAL)
+bpy.ops.object.shade_smooth()
 cyl("needle__guide", entry - d*0.018, entry + d*0.008, 0.0030, PROBE, 20)
 cyl("needle__hub",   entry - d*0.028, entry - d*0.046, 0.0050, WHITE, 20)
 tb = box("needle__trough", tip - d*0.010, (0.0016, 0.0022, 0.014), METAL, bevel=0.0004)
