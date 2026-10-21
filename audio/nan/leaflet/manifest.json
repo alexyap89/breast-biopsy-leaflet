@@ -68,9 +68,9 @@
    "title": "活检针进入",
    "characters": 48,
    "words": 2,
-   "duration_s": 9.0,
-   "bytes": 54477,
-   "wpm": 13.3,
+   "duration_s": 11.84,
+   "bytes": 71541,
+   "wpm": 10.1,
    "engine": "omnivoice"
   },
   "step07": {
@@ -105,8 +105,8 @@
   }
  },
  "total": {
-  "duration_s": 93.43,
-  "bytes": 565461,
+  "duration_s": 96.27,
+  "bytes": 582525,
   "steps": 9
  }
 }

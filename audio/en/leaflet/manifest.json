@@ -18,9 +18,9 @@
    "title": "Your breast and the lump",
    "characters": 176,
    "words": 35,
-   "duration_s": 10.52,
-   "bytes": 63765,
-   "wpm": 199.6,
+   "duration_s": 10.25,
+   "bytes": 62037,
+   "wpm": 204.9,
    "engine": "omnivoice"
   },
   "step02": {
@@ -28,9 +28,9 @@
    "title": "Finding the lump with ultrasound",
    "characters": 210,
    "words": 41,
-   "duration_s": 12.65,
-   "bytes": 76509,
-   "wpm": 194.5,
+   "duration_s": 12.69,
+   "bytes": 76725,
+   "wpm": 193.9,
    "engine": "omnivoice"
   },
   "step03": {
@@ -38,9 +38,9 @@
    "title": "Cleaning the skin",
    "characters": 161,
    "words": 32,
-   "duration_s": 9.42,
-   "bytes": 57069,
-   "wpm": 203.8,
+   "duration_s": 9.39,
+   "bytes": 56853,
+   "wpm": 204.5,
    "engine": "omnivoice"
   },
   "step04": {
@@ -48,9 +48,9 @@
    "title": "Numbing the area",
    "characters": 186,
    "words": 35,
-   "duration_s": 11.23,
-   "bytes": 67869,
-   "wpm": 187.0,
+   "duration_s": 11.16,
+   "bytes": 67437,
+   "wpm": 188.2,
    "engine": "omnivoice"
   },
   "step05": {
@@ -58,19 +58,19 @@
    "title": "A small nick in the skin",
    "characters": 200,
    "words": 40,
-   "duration_s": 12.14,
-   "bytes": 73485,
-   "wpm": 197.7,
+   "duration_s": 12.12,
+   "bytes": 73269,
+   "wpm": 198.0,
    "engine": "omnivoice"
   },
   "step06": {
    "step": 6,
    "title": "The biopsy needle goes in",
-   "characters": 188,
-   "words": 33,
-   "duration_s": 11.68,
-   "bytes": 70677,
-   "wpm": 169.5,
+   "characters": 261,
+   "words": 45,
+   "duration_s": 16.03,
+   "bytes": 96813,
+   "wpm": 168.4,
    "engine": "omnivoice"
   },
   "step07": {
@@ -78,9 +78,9 @@
    "title": "The marker clip",
    "characters": 174,
    "words": 39,
-   "duration_s": 10.22,
-   "bytes": 61821,
-   "wpm": 229.0,
+   "duration_s": 10.06,
+   "bytes": 60957,
+   "wpm": 232.6,
    "engine": "omnivoice"
   },
   "step08": {
@@ -88,9 +88,9 @@
    "title": "Pressure, then a dressing",
    "characters": 162,
    "words": 31,
-   "duration_s": 10.0,
-   "bytes": 60525,
-   "wpm": 186.0,
+   "duration_s": 10.26,
+   "bytes": 62037,
+   "wpm": 181.3,
    "engine": "omnivoice"
   },
   "step09": {
@@ -98,15 +98,15 @@
    "title": "Afterwards, and your results",
    "characters": 235,
    "words": 41,
-   "duration_s": 14.33,
-   "bytes": 86661,
-   "wpm": 171.7,
+   "duration_s": 14.49,
+   "bytes": 87525,
+   "wpm": 169.8,
    "engine": "omnivoice"
   }
  },
  "total": {
-  "duration_s": 102.19,
-  "bytes": 618381,
+  "duration_s": 106.45,
+  "bytes": 643653,
   "steps": 9
  }
 }

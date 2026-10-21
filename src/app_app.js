@@ -33,7 +33,7 @@
      a:{form:1, xray:0.4, lumpHi:0.8, probe:1, needle:0, passes:0, clip:0, dressing:0, scalpel:1, labels:1}},
 
     {t:"The biopsy needle goes in",
-     n:"The biopsy needle is introduced under ultrasound guidance and guided into the lump. The device fires twice, taking a thin core of tissue with each click.",
+     n:"The biopsy needle is introduced under ultrasound guidance and guided into the lump. Each time the device fires, a thin core of tissue is taken; the needle is drawn back and re-introduced until enough tissue has been collected.",
      a:{form:1, xray:0.35, lumpHi:1, probe:1, needle:1, passes:1, clip:0, dressing:0, labels:1}},
 
     {t:"The marker clip",
@@ -65,7 +65,7 @@
 
   function setStep(i){
     cur=i; const s=STEPS[i];
-    clickSequence(!!(s.a && s.a.passes>0.5));
+    clickSequence(false);   /* the pass cycle fires the click, not a timer */
     label.innerHTML='<b>Step '+(i+1)+' of '+STEPS.length+'.</b> '+s.t;
     note.textContent=s.n;
     srText.textContent='Step '+(i+1)+' of '+STEPS.length+'. '+s.t+'. '+s.n;
@@ -572,24 +572,27 @@
      always opens on the strokes with the needle in, never on a stray frame with it outside. */
   /* Travel is small on purpose: the shaft is ~70 mm, so a 20 mm slide reads as the needle
    stepping in and out along its own line rather than sweeping across the field. */
-  const PASS_OUT=0.020, PASS_STROKE=0.010, PASSES=2, PASS_MS=6000, PASS_STROKES=3;
-  let lastCur=-1, stepT0=0;
+  /* One pass = the needle travels in, the device fires while the needle is INSIDE the lesion,
+     the needle comes out, and after a beat it goes back in and fires again. There is no fixed
+     number of passes: it repeats for as long as the sampling step is showing. */
+  const PASS_CYCLE=5400;            /* ms for one in-and-out */
+  const PASS_OUT=0.026;             /* travel out of the lesion, metres */
+  let lastCur=-1, stepT0=0, passClickCyc=-1;
+
   function passSlide(now){
     const amp=Math.min(1,Math.max(0,A.passes))*Math.min(1,Math.max(0,A.needle));
     if(amp<0.02) return 0;
-    const cyc=(now-stepT0)/PASS_MS;
-    /* the first pass opens on the strokes: step 6 has just shown the needle going in, so
-       re-inserting it here would read as a duplicate. Later passes do come in from outside. */
-    const ph=((cyc<1 ? 0.10+cyc : cyc) % 1);
-    let t;                                        /* outward fraction: 0 in, 1 fully out */
-    if(ph<0.10)       t=1-ph/0.10;                /* coming in, from outside the skin */
-    else if(ph<0.70){                             /* a few strokes inside the lump */
-      const s=(ph-0.10)/0.60;
-      t=PASS_STROKE*(0.5-0.5*Math.cos(s*Math.PI*2*PASS_STROKES));
-    }
-    else if(ph<0.86)  t=PASS_STROKE+(1-PASS_STROKE)*((ph-0.70)/0.16);   /* all the way out */
-    else              t=1;                        /* still, needle out, before the next pass */
-    return -PASS_OUT*amp*(t*t*(3-2*t));           /* smoothstep; negative = withdrawn */
+    const t=((now-stepT0)%PASS_CYCLE)/PASS_CYCLE;
+    let f;                                  /* outward fraction: 0 = fully in, 1 = withdrawn */
+    if(t<0.24)       f=1-(t/0.24);          /* travelling in */
+    else if(t<0.52)  f=0;                   /* seated in the lesion - the device fires here */
+    else if(t<0.76)  f=(t-0.52)/0.24;       /* coming out */
+    else             f=1;                   /* pause before the next pass */
+    const e=f*f*(3-2*f);                    /* smoothstep */
+    /* Fire once per cycle, at the moment the needle is seated. */
+    const cyc=Math.floor((now-stepT0)/PASS_CYCLE);
+    if(t>=0.26 && t<0.52 && passClickCyc!==cyc){ passClickCyc=cyc; boom(); }
+    return -PASS_OUT*amp*e;
   }
 
   /* ---- need to know which meshes are "skin" so we can fade them ---------- */
@@ -678,7 +681,8 @@
       m.emissiveIntensity=0.2+0.7*A.lumpHi;
       m.opacity=(typeof cur!=='undefined' && cur===6) ? 0.12 : 0.55;
       m.depthWrite=false; m.needsUpdate=true; });
-    if(P.lumpPivot) P.lumpPivot.scale.setScalar(1+0.15*A.lumpHi);
+    /* No pivot scaling: changing the lump's size between steps made it appear to move. */
+    if(P.lumpPivot) P.lumpPivot.scale.setScalar(1);
 
     /* ---------- probe and needle ----------------------------------------- */
     P.probe.visible = A.probe>0.03;

@@ -68,9 +68,9 @@
    "title": "ஊசி உள்ளே செல்கிறது",
    "characters": 177,
    "words": 21,
-   "duration_s": 12.24,
-   "bytes": 73917,
-   "wpm": 102.9,
+   "duration_s": 17.24,
+   "bytes": 103941,
+   "wpm": 73.1,
    "engine": "omnivoice"
   },
   "step07": {
@@ -105,8 +105,8 @@
   }
  },
  "total": {
-  "duration_s": 126.48,
-  "bytes": 763965,
+  "duration_s": 131.48,
+  "bytes": 793989,
   "steps": 9
  }
 }

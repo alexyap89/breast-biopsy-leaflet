@@ -68,9 +68,9 @@
    "title": "活检针入去",
    "characters": 48,
    "words": 2,
-   "duration_s": 8.1,
-   "bytes": 49077,
-   "wpm": 14.8,
+   "duration_s": 11.13,
+   "bytes": 67437,
+   "wpm": 10.8,
    "engine": "omnivoice"
   },
   "step07": {
@@ -105,8 +105,8 @@
   }
  },
  "total": {
-  "duration_s": 83.53,
-  "bytes": 506277,
+  "duration_s": 86.56,
+  "bytes": 524637,
   "steps": 9
  }
 }

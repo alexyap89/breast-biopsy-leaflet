@@ -68,9 +68,9 @@
    "title": "Jarum biopsi dimasukkan",
    "characters": 198,
    "words": 28,
-   "duration_s": 12.49,
-   "bytes": 75429,
-   "wpm": 134.5,
+   "duration_s": 16.04,
+   "bytes": 96813,
+   "wpm": 104.7,
    "engine": "omnivoice"
   },
   "step07": {
@@ -105,8 +105,8 @@
   }
  },
  "total": {
-  "duration_s": 117.58,
-  "bytes": 710829,
+  "duration_s": 121.13,
+  "bytes": 732213,
   "steps": 9
  }
 }
