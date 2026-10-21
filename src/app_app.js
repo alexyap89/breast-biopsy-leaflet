@@ -532,7 +532,12 @@
        axis points inward, so the bisector is +Z minus AXIS. wantYaw/wantPitch are that direction
        in the same spherical convention the camera placement below already uses. */
     if(!manual && proc>0.05){
-      _bis.set(0,0,1).addScaledVector(AXIS,-1).normalize();
+      /* Look ACROSS the needle, never down it. The horizontal perpendicular to AXIS gives a
+         profile of the tract; a negative Y tilt drops the eye below the chest so the needle
+         reads against the breast rather than against the sheet. */
+      _bis.crossVectors(AXIS, new THREE.Vector3(0,1,0));
+      if(_bis.lengthSq()<1e-6) _bis.set(0.6,0,0.8);
+      _bis.normalize(); _bis.y=-0.35; _bis.normalize();
       const wYaw=Math.atan2(_bis.x,_bis.z);
       const wPitch=Math.asin(Math.max(-1,Math.min(1,_bis.y)));
       const k=Math.min(1,dt*1.6);
@@ -548,13 +553,18 @@
        patient's first impression was a faintly ghosted body with solid black hair
        floating over it. `solid` is where the skin stops writing as glass and
        starts occluding the anatomy behind it again. */
-    const op = 1 - 0.47*A.xray;
+    /* The needle steps want the breast read as glass: at ~0.38 the lump, the needle and the
+       probe are all visible at once while the silhouette still says "breast". */
+    const glass = Math.max(A.needle, A.passes);
+    const op = Math.max(0.22, 1 - 0.47*A.xray - 0.45*glass);
     const solid = op > 0.90;
     P.skinMats.forEach(m=>{ m.opacity=op; m.transparent=!solid;
       m.depthWrite=solid; m.needsUpdate=true; });
 
     /* ---------- interior ------------------------------------------------- */
     if(P.gland) P.gland.visible = A.xray > 0.02;
+    if(P.glandMats) P.glandMats.forEach(m=>{
+      m.transparent=true; m.opacity=Math.max(0.14, 1-0.72*glass); m.depthWrite=false; m.needsUpdate=true; });
 
     /* ---------- nodule emphasis ------------------------------------------ */
     /* The highlight is the material's own emissive, NOT a depth override. This
@@ -566,7 +576,7 @@
        it, and the emissive is what makes it read through that skin. */
     if(P.lesion) P.lesion.traverse(o=>{ if(!o.isMesh) return; const m=o.material;
       m.emissiveIntensity=0.25+1.35*A.lumpHi; m.needsUpdate=true; });
-    if(P.lumpPivot) P.lumpPivot.scale.setScalar(1+0.5*A.lumpHi);
+    if(P.lumpPivot) P.lumpPivot.scale.setScalar(1+0.15*A.lumpHi);
 
     /* ---------- probe and needle ----------------------------------------- */
     P.probe.visible = A.probe>0.03;
@@ -578,6 +588,9 @@
 
     /* ---------- dressing -------------------------------------------------- */
     P.dressing.visible = A.dressing>0.03;
+    /* A little self-light on the shaft keeps it visible where it passes through glandular
+       tissue, without turning it into a light sabre. */
+    if(P.needleMats) P.needleMats.forEach(m=>{ m.emissiveIntensity=0.22*Math.max(A.needle, A.passes); m.needsUpdate=true; });
     if(P.clip){ P.clip.visible = A.clip>0.03; P.clip.scale.setScalar(0.65+0.35*Math.min(1,A.clip)); }
 
     /* ---------- camera ---------------------------------------------------- */

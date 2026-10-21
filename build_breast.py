@@ -141,14 +141,48 @@ cyl("needle__hub",   entry - d*0.050, entry - d*0.070, 0.0055, WHITE, 20)
 tb = box("needle__trough", tip - d*0.010, (0.0016, 0.0022, 0.014), METAL, bevel=0.0004)
 tb.rotation_mode = 'QUATERNION'; tb.rotation_quaternion = d.to_track_quat('Z','Y')
 
-# Seat the probe on the actual skin, found by casting down from above at its footprint.
-fx, fy = lump.x - 0.050, lump.y + 0.010
-hit, loc, nor, idx = body.ray_cast(Vector((fx, fy, 0.5)), Vector((0, 0, -1)))
-skin_z = loc.z if hit else lump.z + 0.045
-foot = Vector((fx, fy, skin_z))
-box("probe__body", foot + Vector((0, 0, 0.024)), (0.034, 0.056, 0.048), PROBE, bevel=0.008)
-box("probe__footprint", foot + Vector((0, 0, 0.001)), (0.030, 0.020, 0.004), WHITE)
-print("PROBE SEAT", round(skin_z, 4), "hit", hit)
+# ------------------------------------------------------------ ultrasound probe
+# A linear-array transducer, not a box: a thin head with a strip footprint, a narrower
+# handle behind it and a cable stub. It sits medial to the needle track so the two never
+# share space - a needle entering at the probe's lateral edge and running beneath it is
+# the geometry the frames need to read.
+px, py = lump.x + 0.030, lump.y + 0.030
+# The cut-away breast leaves a cavity, and a single ray can land inside it - which is how the
+# probe ended up sunk into the tissue. Sample a small grid and rest the probe on the highest
+# point under its footprint, so it always sits on skin.
+zs = []
+for dx in (-0.010, 0.0, 0.010):
+    for dy in (-0.020, 0.0, 0.020):
+        hit, loc, nor, idx = body.ray_cast(Vector((px + dx, py + dy, 0.5)), Vector((0, 0, -1)))
+        if hit:
+            zs.append(loc.z)
+skin_z = max(zs) if zs else 0.0985
+
+box("probe__footprint", Vector((px, py, skin_z + 0.002)), (0.012, 0.045, 0.004), WHITE, bevel=0.001)
+box("probe__body",      Vector((px, py, skin_z + 0.016)), (0.018, 0.060, 0.030), PROBE, bevel=0.003)
+box("probe__handle",    Vector((px, py - 0.004, skin_z + 0.049)), (0.024, 0.020, 0.038), PROBE, bevel=0.005)
+cyl("probe__cable", Vector((px, py - 0.004, skin_z + 0.068)),
+    Vector((px + 0.004, py - 0.030, skin_z + 0.080)), 0.0035, PROBE, 12)
+
+# ------------------------------------------------------------- clearance check
+probe_objs = [bpy.data.objects[n] for n in
+              ('probe__body', 'probe__handle', 'probe__footprint', 'probe__cable')]
+pb = []
+for o in probe_objs:
+    pb += [o.matrix_world @ Vector(c) for c in o.bound_box]
+pmin = Vector((min(v[i] for v in pb) for i in range(3)))
+pmax = Vector((max(v[i] for v in pb) for i in range(3)))
+inside = 0
+for k in range(21):
+    q = entry.lerp(tip, k / 20)
+    if all(pmin[i] - 0.001 <= q[i] <= pmax[i] + 0.001 for i in range(3)):
+        inside += 1
+gap = min(abs(entry.x - pmin.x), abs(entry.x - pmax.x),
+          abs(tip.x - pmin.x), abs(tip.x - pmax.x))
+print("PROBE", "size", tuple(round((pmax[i] - pmin[i]), 3) for i in range(3)),
+      "x", round(pmin.x, 3), "-", round(pmax.x, 3))
+print("NEEDLE entry", tuple(round(c, 3) for c in entry), "tip", tuple(round(c, 3) for c in tip))
+print("CLEARANCE x-gap", round(gap, 3), "m | shaft samples inside probe:", inside)
 
 bpy.ops.mesh.primitive_torus_add(location=lump + Vector((0,0,0.004)),
                                  major_radius=0.0022, minor_radius=0.0005,
