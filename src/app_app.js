@@ -448,7 +448,7 @@
   const PROC_YAW = Math.atan2(_planeN.x, _planeN.z);
   const PROC_PITCH = Math.asin(_planeN.y); /* 45 degrees from below for the needle */
   const STD_YAW=FRONT_YAW, STD_PITCH=FRONT_PITCH;
-  let yaw=STD_YAW, pitch=STD_PITCH, autoRotate=false, manual=false;
+  let yaw=STD_YAW, pitch=STD_PITCH, roll=0, autoRotate=false, manual=false;
   const _bis=new THREE.Vector3();      /* reused each frame: no allocation in the render loop */
   let zoomMul=1.0, dist=0.9;
   let drag=false,lx=0,ly=0,pid=null,swX=0,swY=0;
@@ -600,9 +600,13 @@
       const procView = cur>=2 && cur<=7;
       const tgtY = procView ? PROC_YAW   : FRONT_YAW;
       const tgtP = procView ? PROC_PITCH : FRONT_PITCH;
+      /* The procedure view is rolled a quarter turn so the patient's head is on the LEFT and
+         the base of the torso on the RIGHT - the way the section is laid out on a page. */
+      const tgtR = procView ? -Math.PI/2 : 0;
       const k=Math.min(1,dt*1.6);
       yaw  +=(tgtY - yaw  )*k;
       pitch+=(tgtP - pitch)*k;
+      roll +=(tgtR - roll )*k;
     }
 
     /* ---------- skin: fades as the x-ray view rises ---------------------- */
@@ -731,6 +735,7 @@
        seen square-on to the chest. */
     camera.up.set(0,1,0);
     camera.lookAt(look);
+    if(roll) camera.rotateZ(roll);      /* in-plane rotation: head left, torso right */
 
     /* ---------- cross-section -------------------------------------------- */
     /* Steps 5-7 cut the breast through the lesion, perpendicular to the view, so the needle is
