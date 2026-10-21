@@ -231,8 +231,20 @@ for o in probe_parts:
 
 # Long axis stays along Y: the craniocaudal axis, which is how a breast lesion is scanned,
 # and the plane the needle runs in. The needle passes beneath the footprint, in line with it.
-print("PROBE footprint", FOOT_LEN, "x", FOOT_WID, "m | tilt", round(math.degrees(tilt), 1),
-      "deg | long axis craniocaudal (Y), over the lesion, needle in line beneath")
+print("PROBE footprint", FOOT_LEN, "x", FOOT_WID, "m | tilt", round(math.degrees(tilt), 1), "deg")
+
+# Swing the assembly so its long axis runs PARALLEL to the needle's trajectory, projected on
+# the skin plane: the probe and the needle then lie along one line, as in the reference.
+_h = Vector((d.x, d.y, 0.0))
+if _h.length > 1e-6:
+    _h.normalize()
+    _ang = math.atan2(_h.x, _h.y)      # rotation about Z that takes +Y onto _h
+    _Rz = (Matrix.Translation(Vector((px, py, base)))
+           @ Matrix.Rotation(_ang, 4, 'Z')
+           @ Matrix.Translation(-Vector((px, py, base))))
+    for o in probe_parts:
+        o.matrix_world = _Rz @ o.matrix_world
+    print("PROBE long axis parallel to needle:", round(math.degrees(_ang), 1), "deg")
 
 # ------------------------------------------------------------- clearance check
 # True separation between the needle shaft and the whole probe, not just an x-gap: sample the
