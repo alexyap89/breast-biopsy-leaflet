@@ -390,7 +390,11 @@
   /* No spin by default - the user asked for the model to stop turning on its own; the rotate
      toggle still starts it if they want it. `manual` records that the viewer has moved the camera
      themselves, which is what stops the per-step framing below from pulling it back to a default. */
-  let yaw=0.34, pitch=0.14, autoRotate=false, manual=false;
+  /* ONE camera orientation for the whole page. Every step - wide shots and close-ups alike -
+     is seen from below the chest, looking slightly up, at the same yaw. Only the distance
+     changes with the step, so the anatomy never appears to twist between chapters. */
+  const STD_YAW=0.62, STD_PITCH=-0.26;
+  let yaw=STD_YAW, pitch=STD_PITCH, autoRotate=false, manual=false;
   const _bis=new THREE.Vector3();      /* reused each frame: no allocation in the render loop */
   let zoomMul=1.0, dist=0.9;
   let drag=false,lx=0,ly=0,pid=null,swX=0,swY=0;
@@ -524,25 +528,19 @@
        toggle can still start it, and it is held during the procedure: you cannot follow a needle
        while the neck turns away from you. `manual` is set by any drag, wheel or key press, so a view
        the viewer has taken hold of is never pulled back to a default. */
-    if(autoRotate && !RM && !manual && proc<0.05) yaw+=dt*0.10;
+    /* No idle spin: a view that drifts on its own cannot be standardised. */
     /* The procedure steps are framed FOR the procedure: the camera eases to the bisector of the
        ultrasound's plane and the needle, so it looks from between them - the one direction where
        the probe's face on the skin and the needle going in under it are both visible. The
        ultrasound's plane is the skin surface, whose outward direction is +Z here, and the needle's
        axis points inward, so the bisector is +Z minus AXIS. wantYaw/wantPitch are that direction
        in the same spherical convention the camera placement below already uses. */
-    if(!manual && proc>0.05){
-      /* Look ACROSS the needle, never down it. The horizontal perpendicular to AXIS gives a
-         profile of the tract; a negative Y tilt drops the eye below the chest so the needle
-         reads against the breast rather than against the sheet. */
-      _bis.crossVectors(AXIS, new THREE.Vector3(0,1,0));
-      if(_bis.lengthSq()<1e-6) _bis.set(0.6,0,0.8);
-      _bis.normalize(); _bis.y=-0.35; _bis.normalize();
-      const wYaw=Math.atan2(_bis.x,_bis.z);
-      const wPitch=Math.asin(Math.max(-1,Math.min(1,_bis.y)));
+    if(!manual){
+      /* Always return to the standard view, whatever the step. `manual` still wins, so a
+         reader who drags the model keeps their own angle until the step changes. */
       const k=Math.min(1,dt*1.6);
-      yaw  +=(wYaw  -yaw  )*k;
-      pitch+=(wPitch-pitch)*k;
+      yaw  +=(STD_YAW  -yaw  )*k;
+      pitch+=(STD_PITCH-pitch)*k;
     }
 
     /* ---------- skin: fades as the x-ray view rises ---------------------- */

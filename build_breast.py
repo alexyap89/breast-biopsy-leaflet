@@ -131,7 +131,10 @@ lump = Vector((gc.x, gc.y, gc.z))
 sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 
 # ------------------------------------------------------------ probe + needle
-entry  = Vector((lump.x - 0.062, lump.y, lump.z + 0.052))
+# The needle enters in line with the probe's long axis, at its foot end - the way a
+# freehand US-guided biopsy is actually done. Running it across the probe is what made the
+# shaft collide with the handle no matter where the probe was put.
+entry  = Vector((lump.x - 0.030, lump.y - 0.088, lump.z + 0.030))
 tip    = lump + Vector((0, 0, 0))
 d      = (tip - entry).normalized()
 
@@ -146,25 +149,44 @@ tb.rotation_mode = 'QUATERNION'; tb.rotation_quaternion = d.to_track_quat('Z','Y
 # handle behind it and a cable stub. It sits medial to the needle track so the two never
 # share space - a needle entering at the probe's lateral edge and running beneath it is
 # the geometry the frames need to read.
-px, py = lump.x + 0.030, lump.y + 0.030
-# The cut-away breast leaves a cavity, and a single ray can land inside it - which is how the
-# probe ended up sunk into the tissue. Sample a small grid and rest the probe on the highest
-# point under its footprint, so it always sits on skin.
+# The probe lies FLAT on the skin, just above it, set beside the cut-away rather than over it,
+# with its long axis running along the edge of the exposed tissue. Sitting it over the cavity
+# is what made it look like an object dropped into the breast.
+px, py = lump.x - 0.030, lump.y
 zs = []
 for dx in (-0.010, 0.0, 0.010):
-    for dy in (-0.020, 0.0, 0.020):
+    for dy in (-0.022, 0.0, 0.022):
         hit, loc, nor, idx = body.ray_cast(Vector((px + dx, py + dy, 0.5)), Vector((0, 0, -1)))
         if hit:
             zs.append(loc.z)
 skin_z = max(zs) if zs else 0.0985
+SKIN_GAP = 0.0015                     # it hovers a hair above the skin, never inside it
 
-box("probe__footprint", Vector((px, py, skin_z + 0.002)), (0.012, 0.045, 0.004), WHITE, bevel=0.001)
-box("probe__body",      Vector((px, py, skin_z + 0.016)), (0.018, 0.060, 0.030), PROBE, bevel=0.003)
-box("probe__handle",    Vector((px, py - 0.004, skin_z + 0.049)), (0.024, 0.020, 0.038), PROBE, bevel=0.005)
-cyl("probe__cable", Vector((px, py - 0.004, skin_z + 0.068)),
-    Vector((px + 0.004, py - 0.030, skin_z + 0.080)), 0.0035, PROBE, 12)
+probe_parts = [
+    box("probe__footprint", Vector((px, py, skin_z + SKIN_GAP + 0.0015)), (0.013, 0.046, 0.003), WHITE, bevel=0.001),
+    box("probe__body",      Vector((px, py, skin_z + SKIN_GAP + 0.0165)), (0.019, 0.058, 0.030), PROBE, bevel=0.003),
+    cyl("probe__handle", Vector((px, py - 0.002, skin_z + SKIN_GAP + 0.032)),
+        Vector((px, py - 0.004, skin_z + SKIN_GAP + 0.070)), 0.011, PROBE, 16),
+    cyl("probe__cable", Vector((px, py - 0.004, skin_z + SKIN_GAP + 0.070)),
+        Vector((px + 0.004, py - 0.036, skin_z + SKIN_GAP + 0.082)), 0.0035, PROBE, 12),
+]
+
+# The breast slopes away under the footprint, so a level probe hovers at one edge. Tilt the
+# whole assembly about the footprint centre to sit flush with the skin.
+def _skin_at(x, y):
+    hit, loc, nor, idx = body.ray_cast(Vector((x, y, 0.5)), Vector((0, 0, -1)))
+    return loc.z if hit else skin_z
+slope = (_skin_at(px, py + 0.022) - _skin_at(px, py - 0.022)) / 0.044
+tilt = math.atan(slope)
+pivot = Vector((px, py, skin_z + SKIN_GAP))
+R = (Matrix.Translation(pivot) @ Matrix.Rotation(tilt, 4, 'X') @ Matrix.Translation(-pivot))
+for o in probe_parts:
+    o.matrix_world = R @ o.matrix_world
+print("PROBE tilt", round(math.degrees(tilt), 1), "deg | slope", round(slope, 3))
 
 # ------------------------------------------------------------- clearance check
+# True separation between the needle shaft and the whole probe, not just an x-gap: sample the
+# shaft and measure each sample's distance to the probe box.
 probe_objs = [bpy.data.objects[n] for n in
               ('probe__body', 'probe__handle', 'probe__footprint', 'probe__cable')]
 pb = []
@@ -172,17 +194,20 @@ for o in probe_objs:
     pb += [o.matrix_world @ Vector(c) for c in o.bound_box]
 pmin = Vector((min(v[i] for v in pb) for i in range(3)))
 pmax = Vector((max(v[i] for v in pb) for i in range(3)))
-inside = 0
-for k in range(21):
-    q = entry.lerp(tip, k / 20)
-    if all(pmin[i] - 0.001 <= q[i] <= pmax[i] + 0.001 for i in range(3)):
-        inside += 1
-gap = min(abs(entry.x - pmin.x), abs(entry.x - pmax.x),
-          abs(tip.x - pmin.x), abs(tip.x - pmax.x))
-print("PROBE", "size", tuple(round((pmax[i] - pmin[i]), 3) for i in range(3)),
-      "x", round(pmin.x, 3), "-", round(pmax.x, 3))
+
+def box_dist(q, lo, hi):
+    d = Vector((max(lo[i] - q[i], 0.0, q[i] - hi[i]) for i in range(3)))
+    return d.length
+
+inside, near = 0, 9.9
+for k in range(41):
+    q = entry.lerp(tip, k / 40)
+    inside += 1 if all(pmin[i] < q[i] < pmax[i] for i in range(3)) else 0
+    near = min(near, box_dist(q, pmin, pmax))
+print("PROBE size", tuple(round(pmax[i] - pmin[i], 3) for i in range(3)),
+      "| bottom z", round(pmin.z, 4), "| skin z", round(skin_z, 4))
 print("NEEDLE entry", tuple(round(c, 3) for c in entry), "tip", tuple(round(c, 3) for c in tip))
-print("CLEARANCE x-gap", round(gap, 3), "m | shaft samples inside probe:", inside)
+print("CLEARANCE", round(near, 4), "m | shaft samples inside probe:", inside)
 
 bpy.ops.mesh.primitive_torus_add(location=lump + Vector((0,0,0.004)),
                                  major_radius=0.0022, minor_radius=0.0005,
