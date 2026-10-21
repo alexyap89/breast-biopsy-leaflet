@@ -136,7 +136,7 @@ def box(n, loc, size, m, bevel=0.003):
     return o
 
 # ---------------------------------------------------------------- the lump
-lump = Vector((gc.x, gc.y, gc.z + 0.012))   # nearer the skin, as in the reference section
+lump = Vector((gc.x, gc.y, gc.z + 0.005))   # slightly deeper than the surface, in the outer gland
 sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 
 # ------------------------------------------------------------ probe + needle
@@ -146,8 +146,13 @@ sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 # Enter on the INFERIOR surface of the breast - the lower curve, at skin level - and travel
 # up and back into the lump at roughly 45 degrees. The earlier attempt put the entry BELOW the
 # lump in depth (z < lump.z), which is inside the body, not on the skin.
-entry  = lump + Vector((-0.014, 0.055, 0.042))   # anterior-inferior skin, shallow approach
-tip    = lump + (lump - entry).normalized() * 0.016   # past the centre, still inside the lump's far half
+# Entry ON the skin at the inferior margin of the breast - the base - so the needle is
+# superficial where it starts rather than already inside the gland.
+_ex, _ey = lump.x - 0.052, lump.y + 0.078
+_hit, _loc, _n, _i = body.ray_cast(Vector((_ex, _ey, 0.5)), Vector((0, 0, -1)))
+_skin_z = _loc.z if _hit else lump.z + 0.040
+entry  = Vector((_ex, _ey, _skin_z + 0.002))
+tip    = lump + (lump - entry).normalized() * 0.012   # past the centre, inside the far half of the lump
 d      = (tip - entry).normalized()
 
 # A core-biopsy needle has a bevel tip, not a blunt end: the reference animation shows a
