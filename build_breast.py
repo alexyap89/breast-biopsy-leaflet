@@ -136,7 +136,7 @@ def box(n, loc, size, m, bevel=0.003):
     return o
 
 # ---------------------------------------------------------------- the lump
-lump = Vector((gc.x, gc.y, gc.z))
+lump = Vector((gc.x, gc.y, gc.z + 0.012))   # nearer the skin, as in the reference section
 sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 
 # ------------------------------------------------------------ probe + needle
@@ -146,7 +146,7 @@ sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 # Enter on the INFERIOR surface of the breast - the lower curve, at skin level - and travel
 # up and back into the lump at roughly 45 degrees. The earlier attempt put the entry BELOW the
 # lump in depth (z < lump.z), which is inside the body, not on the skin.
-entry  = lump + Vector((-0.012, 0.048, 0.030))   # screen-below the lump (see note below)
+entry  = lump + Vector((-0.014, 0.055, 0.042))   # anterior-inferior skin, shallow approach
 tip    = lump + (lump - entry).normalized() * 0.016   # past the centre, still inside the lump's far half
 d      = (tip - entry).normalized()
 
@@ -187,7 +187,7 @@ for dx in (-0.045, -0.022, 0.0, 0.022, 0.045):
 skin_z = max(zs) if zs else 0.0985
 
 FOOT_LEN, FOOT_WID, FOOT_H = 0.052, 0.016, 0.004      # along Y, along X, thickness
-GAP = 0.0015                                            # hovers a hair above the skin
+GAP = 0.004                                             # clears the tilted footprint from the track
 base = skin_z + GAP
 
 probe_parts = [
@@ -197,11 +197,11 @@ probe_parts = [
         (FOOT_WID * 1.15, FOOT_LEN * 0.42, 0.028), PROBE, bevel=0.0035),
 ]
 # handle: 28 deg off the skin normal, leaning back toward the head end
-hd_start = Vector((px + 0.006, py, base + 0.030))
-hd_dir = Vector((math.sin(math.radians(28)), 0.0, math.cos(math.radians(28))))
+hd_start = Vector((px - 0.006, py, base + 0.030))
+hd_dir = Vector((-math.sin(math.radians(28)), 0.0, math.cos(math.radians(28))))
 hd_end = hd_start + hd_dir * 0.085
 probe_parts.append(cyl("probe__handle", hd_start, hd_end, 0.013, PROBE, 18))
-cb_dir = Vector((math.sin(math.radians(42)), 0.0, math.cos(math.radians(42))))
+cb_dir = Vector((-math.sin(math.radians(42)), 0.0, math.cos(math.radians(42))))
 probe_parts.append(cyl("probe__cable", hd_end, hd_end + cb_dir * 0.070, 0.006, PROBE, 12))
 
 # Sit the assembly flush with the sloping breast rather than hovering at one edge.
@@ -209,7 +209,7 @@ def _skin_at(x, y):
     hit, loc, nor, idx = body.ray_cast(Vector((x, y, 0.5)), Vector((0, 0, -1)))
     return loc.z if hit else skin_z
 slope = (_skin_at(px, py + 0.024) - _skin_at(px, py - 0.024)) / 0.048
-tilt = max(-0.17, min(0.17, math.atan(slope)))   # cap the tilt; a steep slope would bury an edge
+tilt = max(-0.09, min(0.09, math.atan(slope)))   # small tilt only: a tilted edge dips into the needle track
 pivot = Vector((px, py, base))
 R = (Matrix.Translation(pivot) @ Matrix.Rotation(tilt, 4, 'X') @ Matrix.Translation(-pivot))
 for o in probe_parts:

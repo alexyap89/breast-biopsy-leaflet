@@ -438,7 +438,15 @@
   /* The chest faces -Z after the model is laid supine, so the camera sits on that side. */
   const CHEST_SIDE=Math.PI;
   const FRONT_YAW=CHEST_SIDE, FRONT_PITCH=0.0;
-  const PROC_YAW=CHEST_SIDE+0.42,  PROC_PITCH=-Math.PI/4; /* 45 degrees from below for the needle */
+  /* The procedure view looks PERPENDICULAR to the plane that holds the needle and the skin
+     normal, so the needle is seen in profile crossing the lump - the view a radiologist has
+     on the ultrasound screen, and the one the reference section uses. Derived from AXIS so it
+     follows any change to the needle path. */
+  const _planeN = new THREE.Vector3().crossVectors(AXIS, new THREE.Vector3(0,0,1));
+  if(_planeN.lengthSq() < 1e-6) _planeN.set(1,0,0);
+  _planeN.normalize(); _planeN.y = 0.22; _planeN.normalize();
+  const PROC_YAW = Math.atan2(_planeN.x, _planeN.z);
+  const PROC_PITCH = Math.asin(_planeN.y); /* 45 degrees from below for the needle */
   const STD_YAW=FRONT_YAW, STD_PITCH=FRONT_PITCH;
   let yaw=STD_YAW, pitch=STD_PITCH, autoRotate=false, manual=false;
   const _bis=new THREE.Vector3();      /* reused each frame: no allocation in the render loop */
