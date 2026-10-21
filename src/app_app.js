@@ -603,20 +603,27 @@
        frame is the breast itself: fitting the torso keeps the arms in shot and makes the needle
        a few pixels long. A box around the lump gives roughly a 20 cm view. */
     const box=new THREE.Box3();
-    if(A.lumpHi>0.3){ box.setFromCenterAndSize(LUMP_WORLD, new THREE.Vector3(0.20,0.20,0.16)); }
+    /* Close-up steps are the lump ones and the dressing ones; both frame the site of the
+       action rather than the whole torso, at the same standard angle. */
+    const focus = A.dressing>0.3 ? ENTRY : LUMP_WORLD;
+    const close = Math.max(A.lumpHi, A.dressing);
+    if(close>0.3){
+      const half = A.dressing>0.3 ? 0.055 : 0.085;   /* a 32 mm dressing needs a tighter box than a lump */
+      box.setFromCenterAndSize(focus, new THREE.Vector3(half*2, half*2, half*1.7));
+    }
     else { box.setFromObject(P.body); }
     if(A.xray>0.02){ [P.lesion,P.gland].forEach(g=>{ if(g) box.union(new THREE.Box3().setFromObject(g)); }); }
     if(A.probe>0.05) box.union(new THREE.Box3().setFromObject(P.probe));
     if(P.dressing.visible) box.union(new THREE.Box3().setFromObject(P.dressing));
     /* The floor keeps the camera out of the body on wide steps; on the close-ups the box is
        already small, so a 0.62 m floor would undo the framing entirely. */
-    const minD = A.lumpHi>0.3 ? 0.22 : 0.62;
+    const minD = close>0.3 ? 0.14 : 0.62;
     const dTarget=Math.max(minD, fitDist(box)*(1-0.2*A.lumpHi)*zoomMul*(1-0.25*proc));
     dist+=(dTarget-dist)*Math.min(1,dt*3.0);
     box.getCenter(_lookT);
     /* Once the lump is the subject, aim at it rather than at the middle of the torso: the
        breast sits off-centre, so a body-centred look leaves the action in a corner. */
-    if(A.lumpHi>0.05) _lookT.lerp(LUMP_WORLD, Math.min(1, A.lumpHi));
+    if(close>0.05) _lookT.lerp(focus, Math.min(1, close));
     if(!lookInit){ look.copy(_lookT); lookInit=true; }
     look.lerp(_lookT, Math.min(1,dt*3.0));
     camera.position.set(look.x+Math.sin(yaw)*Math.cos(pitch)*dist,

@@ -149,40 +149,48 @@ tb.rotation_mode = 'QUATERNION'; tb.rotation_quaternion = d.to_track_quat('Z','Y
 # handle behind it and a cable stub. It sits medial to the needle track so the two never
 # share space - a needle entering at the probe's lateral edge and running beneath it is
 # the geometry the frames need to read.
-# The probe lies FLAT on the skin, just above it, set beside the cut-away rather than over it,
-# with its long axis running along the edge of the exposed tissue. Sitting it over the cavity
-# is what made it look like an object dropped into the breast.
-px, py = lump.x - 0.030, lump.y
+# ---------------------------------------------------------- ultrasound probe
+# Geometry follows the FNAC leaflet's probe, which reads correctly: a flat rectangular
+# footprint ON the skin, a tapered body behind it, a cylindrical handle angled up and back,
+# and a cable. The skin normal here is +Z and the long axis runs head-to-foot (Y).
+px, py = lump.x - 0.055, lump.y
 zs = []
-for dx in (-0.010, 0.0, 0.010):
-    for dy in (-0.022, 0.0, 0.022):
+for dx in (-0.011, 0.0, 0.011):
+    for dy in (-0.024, 0.0, 0.024):
         hit, loc, nor, idx = body.ray_cast(Vector((px + dx, py + dy, 0.5)), Vector((0, 0, -1)))
         if hit:
             zs.append(loc.z)
 skin_z = max(zs) if zs else 0.0985
-SKIN_GAP = 0.0015                     # it hovers a hair above the skin, never inside it
+
+FOOT_LEN, FOOT_WID, FOOT_H = 0.052, 0.016, 0.004      # along Y, along X, thickness
+GAP = 0.0015                                            # hovers a hair above the skin
+base = skin_z + GAP
 
 probe_parts = [
-    box("probe__footprint", Vector((px, py, skin_z + SKIN_GAP + 0.0015)), (0.013, 0.046, 0.003), WHITE, bevel=0.001),
-    box("probe__body",      Vector((px, py, skin_z + SKIN_GAP + 0.0165)), (0.019, 0.058, 0.030), PROBE, bevel=0.003),
-    cyl("probe__handle", Vector((px, py - 0.002, skin_z + SKIN_GAP + 0.032)),
-        Vector((px, py - 0.004, skin_z + SKIN_GAP + 0.070)), 0.011, PROBE, 16),
-    cyl("probe__cable", Vector((px, py - 0.004, skin_z + SKIN_GAP + 0.070)),
-        Vector((px + 0.004, py - 0.036, skin_z + SKIN_GAP + 0.082)), 0.0035, PROBE, 12),
+    box("probe__footprint", Vector((px, py, base + FOOT_H / 2)),
+        (FOOT_WID, FOOT_LEN, FOOT_H), WHITE, bevel=0.0012),
+    box("probe__body", Vector((px, py, base + FOOT_H + 0.014)),
+        (FOOT_WID * 1.15, FOOT_LEN * 0.42, 0.028), PROBE, bevel=0.0035),
 ]
+# handle: 28 deg off the skin normal, leaning back toward the head end
+hd_start = Vector((px, py + 0.006, base + 0.030))
+hd_dir = Vector((0.0, math.sin(math.radians(28)), math.cos(math.radians(28))))
+hd_end = hd_start + hd_dir * 0.085
+probe_parts.append(cyl("probe__handle", hd_start, hd_end, 0.013, PROBE, 18))
+cb_dir = Vector((0.0, math.sin(math.radians(42)), math.cos(math.radians(42))))
+probe_parts.append(cyl("probe__cable", hd_end, hd_end + cb_dir * 0.070, 0.006, PROBE, 12))
 
-# The breast slopes away under the footprint, so a level probe hovers at one edge. Tilt the
-# whole assembly about the footprint centre to sit flush with the skin.
+# Sit the assembly flush with the sloping breast rather than hovering at one edge.
 def _skin_at(x, y):
     hit, loc, nor, idx = body.ray_cast(Vector((x, y, 0.5)), Vector((0, 0, -1)))
     return loc.z if hit else skin_z
-slope = (_skin_at(px, py + 0.022) - _skin_at(px, py - 0.022)) / 0.044
+slope = (_skin_at(px, py + 0.024) - _skin_at(px, py - 0.024)) / 0.048
 tilt = math.atan(slope)
-pivot = Vector((px, py, skin_z + SKIN_GAP))
+pivot = Vector((px, py, base))
 R = (Matrix.Translation(pivot) @ Matrix.Rotation(tilt, 4, 'X') @ Matrix.Translation(-pivot))
 for o in probe_parts:
     o.matrix_world = R @ o.matrix_world
-print("PROBE tilt", round(math.degrees(tilt), 1), "deg | slope", round(slope, 3))
+print("PROBE footprint", FOOT_LEN, "x", FOOT_WID, "m | tilt", round(math.degrees(tilt), 1), "deg")
 
 # ------------------------------------------------------------- clearance check
 # True separation between the needle shaft and the whole probe, not just an x-gap: sample the
@@ -216,7 +224,15 @@ c = bpy.context.active_object; c.name = "clip__marker"; c.data.materials.append(
 c.rotation_euler = Euler((math.radians(78), 0, math.radians(20)), 'XYZ')
 bpy.ops.object.shade_smooth()
 
-cyl("dressing__pad", entry + Vector((0,0,0.002)), entry - Vector((0,0,0.0005)), 0.016, WHITE, 32)
+# Dressing built like the FNAC leaflet's: a gauze pad flattened onto the skin at the entry
+# point, with an adhesive strip across it.
+hit, dloc, dnor, didx = body.ray_cast(Vector((entry.x, entry.y, 0.5)), Vector((0, 0, -1)))
+d_skin = dloc.z if hit else skin_z
+PAD_R, PAD_H = 0.016, 0.0022
+cyl("dressing__pad", Vector((entry.x, entry.y, d_skin + PAD_H)),
+    Vector((entry.x, entry.y, d_skin + GAP)), PAD_R, WHITE, 28)
+box("dressing__strip", Vector((entry.x, entry.y, d_skin + PAD_H + 0.0012)),
+    (PAD_R * 1.9, PAD_R * 0.55, 0.0016), WHITE, bevel=0.0006)
 
 # ------------------------------------------------------------------- export
 # The page assigns its own materials per role (app_scene.js), so the source textures would
