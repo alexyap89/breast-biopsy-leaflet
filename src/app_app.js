@@ -357,6 +357,17 @@
   const scene=T.scene, body=T.body, P=T.parts;
   const {LUMP_WORLD, ENTRY, AXIS, NEEDLE_HOME} = T.anchors;
 
+  /* The needle's slide is an offset from its authored pose, so it must travel along the world
+     line ENTRY -> LUMP_WORLD. `AXIS` is that direction in WORLD space, but `P.needle.position`
+     is the group's PARENT-local translation. Route the world axis through the parent's inverse
+     world matrix so the offset is expressed in the correct frame: for a group parented directly
+     under the identity scene root, parent-local == world and AXIS_LOCAL == AXIS, while a
+     reparent under the -90 degree supine rig would still land on the world line. */
+  const _needleParentInv = new THREE.Matrix4();
+  if(P.needle && P.needle.parent && P.needle.parent.matrixWorld)
+    _needleParentInv.copy(P.needle.parent.matrixWorld).invert();
+  const AXIS_LOCAL = AXIS.clone().transformDirection(_needleParentInv);
+
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true,
                                             preserveDrawingBuffer:true});
   renderer.setClearColor(0x000000,0);
@@ -629,10 +640,20 @@
     /* ---------- probe and needle ----------------------------------------- */
     P.probe.visible = A.probe>0.03;
     P.probe.position.y = (A.probe>0.05 && !RM ? 0.0015*Math.sin(now/260) : 0);
+    /* The probe rests over the needle track. While the biopsy needle is in (A.needle > 0.5) an
+       opaque probe is a dark block that hides the needle, so fade it to a translucent shell so
+       the needle reads through it, and restore it once the needle is withdrawn. */
+    const probeSeeThrough = A.needle > 0.5;
+    if(P.probeMats) P.probeMats.forEach(m=>{
+      m.transparent = probeSeeThrough;
+      m.opacity = probeSeeThrough ? 0.30 : 1.0;
+      m.depthWrite = !probeSeeThrough;
+      m.needsUpdate = true;
+    });
     const active = A.needle>0.02 || A.passes>0.02;
     P.needle.visible = active;
     const slide = -(1-Math.min(1,A.needle))*0.075 + passSlide(now);
-    P.needle.position.copy(NEEDLE_HOME).addScaledVector(AXIS, slide);
+    P.needle.position.copy(NEEDLE_HOME).addScaledVector(AXIS_LOCAL, slide);
 
     /* ---------- dressing -------------------------------------------------- */
     P.dressing.visible = A.dressing>0.03;

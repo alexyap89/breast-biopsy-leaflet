@@ -27,6 +27,7 @@ function buildThreeScene(THREE, root){
 
   const skinMats=[];
   const glandMats=[];
+  const probeMats=[];
   const needleMats=[];
   const clipMats=[];
   const ductMats=[];
@@ -50,6 +51,7 @@ function buildThreeScene(THREE, root){
     });
     if(skin) skinMats.push(m);
     if(role==='gland') glandMats.push(m);
+    if(role==='probe') probeMats.push(m);
     if(role==='needle') needleMats.push(m);
     if(role==='clip') clipMats.push(m);
     return m;
@@ -118,12 +120,19 @@ function buildThreeScene(THREE, root){
   if(G.scalpel) G.scalpel.visible=false;
   if(G.dressing) G.dressing.visible=false;
 
+  /* The needle's specimen trough ships mirrored across the body: its world centre is at
+     x ≈ -0.075 while the needle shaft sits at x ≈ +0.075, so it draws as a small rectangle
+     detached from the needle that slides with it. It is an export artefact, not a feature of
+     any step, so hide it rather than let it float on the far side of the model. */
+  if(G.needle) G.needle.children.forEach(o=>{ if(o.name && o.name.indexOf('needle__trough')===0) o.visible=false; });
+
   return {
     scene, root,
     body: G.body,
     parts: {
       skinMats,
       glandMats,
+      probeMats,
       needleMats,
       clipMats,
       ductMats,

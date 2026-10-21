@@ -140,10 +140,10 @@ lump = Vector((gc.x, gc.y, gc.z))
 sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 
 # ------------------------------------------------------------ probe + needle
-# The needle enters in line with the probe's long axis, at its foot end - the way a
-# freehand US-guided biopsy is actually done. Running it across the probe is what made the
-# shaft collide with the handle no matter where the probe was put.
-entry  = Vector((lump.x, lump.y - 0.090, lump.z + 0.030))
+# Inferior approach: the needle enters on the lower (inferior) aspect of the breast and
+# rises up into the lump, the way an ultrasound-guided core biopsy is actually done.
+# The probe stays over the lump and is kept clear of the shaft by the check below.
+entry  = lump + Vector((-0.012, -0.070, -0.045))
 tip    = lump + (lump - entry).normalized() * 0.022   # crosses the lump and exits
 d      = (tip - entry).normalized()
 
@@ -232,6 +232,16 @@ print("PROBE size", tuple(round(pmax[i] - pmin[i], 3) for i in range(3)),
 print("NEEDLE entry", tuple(round(c, 3) for c in entry), "tip", tuple(round(c, 3) for c in tip))
 print("CLEARANCE", round(near, 4), "m | shaft samples inside probe:", inside)
 
+_sh = bpy.data.objects.get("needle__shaft")
+if _sh:
+    _c = sum((_sh.matrix_world @ Vector(b) for b in _sh.bound_box), Vector()) / 8
+    _line = (lump - entry).normalized()
+    _to_c = (_c - entry)
+    _per = _to_c - _line * _to_c.dot(_line)
+    print("SHAFT centre", tuple(round(v, 4) for v in _c),
+          "| off-axis", round(_per.length, 5), "m",
+          "| angle", round(math.degrees(math.acos(max(-1, min(1, _line.normalized().dot((tip-entry).normalized()))))), 2), "deg")
+
 bpy.ops.mesh.primitive_torus_add(location=lump,
                                  major_radius=0.0038, minor_radius=0.0008,
                                  major_segments=28, minor_segments=10)
@@ -294,6 +304,8 @@ print("LUMP     ", tuple(round(c,3) for c in lump))
 print("PROBE mid", tuple(round(c,3) for c in _centre_of(
     ('probe__body','probe__footprint','probe__handle','probe__cable'))))
 print("CLIP mid ", tuple(round(c,3) for c in _centre_of(('clip__marker',))))
+clip_c = _centre_of(('clip__marker',))
+print("CLIP-to-LUMP", round((clip_c - lump).length, 4), "m")
 print("FOOTPRINT mid", tuple(round(c,3) for c in _centre_of(('probe__footprint',))))
 
 # ------------------------------------------------------------------- export
