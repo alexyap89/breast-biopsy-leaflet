@@ -238,7 +238,7 @@ print("PROBE footprint", FOOT_LEN, "x", FOOT_WID, "m | tilt", round(math.degrees
 _h = Vector((d.x, d.y, 0.0))
 if _h.length > 1e-6:
     _h.normalize()
-    _ang = math.atan2(_h.x, _h.y)      # rotation about Z that takes +Y onto _h
+    _ang = math.atan2(_h.x, _h.y) + math.pi/2   # +90: the footprint's long axis is X after the housing rotation
     _Rz = (Matrix.Translation(Vector((px, py, base)))
            @ Matrix.Rotation(_ang, 4, 'Z')
            @ Matrix.Translation(-Vector((px, py, base))))

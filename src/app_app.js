@@ -471,9 +471,9 @@
   /* Oblique rather than a pure side-on section: pull the direction most of the way round to
      the front so the breast is seen at an angle, with a little elevation. A straight lateral
      cut put the flank and buttock in frame and showed the breast edge-on. */
-  _planeN.addScaledVector(new THREE.Vector3(0, 0, 1), 0.5);
-  _planeN.normalize();
-  _planeN.y = 0.12;   /* barely any elevation: a flat view of the breast */
+  /* Pure lateral azimuth - no pull toward the front - with the eye raised to about 45 degrees,
+     so the breast is seen from the side and slightly above. */
+  _planeN.y = 0.72;
   _planeN.normalize();
   const PROC_YAW = Math.atan2(_planeN.x, _planeN.z);
   const PROC_PITCH = Math.asin(_planeN.y); /* 45 degrees from below for the needle */
