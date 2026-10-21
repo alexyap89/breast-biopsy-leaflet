@@ -426,7 +426,7 @@
      changes with the step, so the anatomy never appears to twist between chapters. */
   /* "Frontal" means square-on to the chest: the camera sits in front of the patient and
      looks straight at both breasts, which is how the paper leaflet is laid out. */
-  const FRONT_YAW=0.0, FRONT_PITCH=0.78;   /* steep enough to clear the head and show both breasts */
+  const FRONT_YAW=0.0, FRONT_PITCH=0.12;   /* near square-on to the chest */
   const PROC_YAW=0.42,  PROC_PITCH=-Math.PI/4; /* 45 degrees from below for the needle */
   const STD_YAW=FRONT_YAW, STD_PITCH=FRONT_PITCH;
   let yaw=STD_YAW, pitch=STD_PITCH, autoRotate=false, manual=false;
@@ -654,9 +654,7 @@
     else {
       /* Both breasts, and nothing else: framing the whole torso drags the head into the
          foreground and it covers the chest. */
-      box.setFromCenterAndSize(
-        new THREE.Vector3(LUMP_WORLD.x, LUMP_WORLD.y - 0.02, LUMP_WORLD.z - 0.02),
-        new THREE.Vector3(0.30, 0.34, 0.22));
+      box.setFromObject(P.body);   /* the look point must be the body's centre, not the chest */
     }
     if(A.xray>0.02){ [P.lesion,P.gland].forEach(g=>{ if(g) box.union(new THREE.Box3().setFromObject(g)); }); }
     if(A.probe>0.05) box.union(new THREE.Box3().setFromObject(P.probe));
@@ -664,7 +662,11 @@
     /* The floor keeps the camera out of the body on wide steps; on the close-ups the box is
        already small, so a 0.62 m floor would undo the framing entirely. */
     const minD = close>0.3 ? 0.14 : 0.62;
-    const dTarget=Math.max(minD, fitDist(box)*(1-0.2*A.lumpHi)*zoomMul*(1-0.25*proc));
+    /* The wide steps use a fixed distance rather than a fit of a nominal box: the torso has
+       arms and a head, and fitting a box around it always leaves the body small in frame. */
+    const dTarget = close>0.3
+      ? Math.max(minD, fitDist(box)*(1-0.2*A.lumpHi)*zoomMul*(1-0.25*proc))
+      : 0.78*zoomMul;
     dist+=(dTarget-dist)*Math.min(1,dt*3.0);
     box.getCenter(_lookT);
     /* Once the lump is the subject, aim at it rather than at the middle of the torso: the
@@ -675,6 +677,10 @@
     camera.position.set(look.x+Math.sin(yaw)*Math.cos(pitch)*dist,
                         look.y+Math.sin(pitch)*dist,
                         look.z+Math.cos(yaw)*Math.cos(pitch)*dist);
+    /* Head at the TOP of the picture on every view: the camera's up vector runs along the
+       body's -Y, not world +Y, which otherwise leaves the head at the bottom when the page is
+       seen square-on to the chest. */
+    camera.up.set(0,-1,0);
     camera.lookAt(look);
 
     renderer.render(scene,camera);
