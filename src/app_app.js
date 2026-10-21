@@ -463,11 +463,13 @@
   const _planeN = new THREE.Vector3().crossVectors(AXIS, new THREE.Vector3(0,0,1));
   if(_planeN.lengthSq() < 1e-6) _planeN.set(1,0,0);
   _planeN.normalize();
-  /* View the section from the OTHER side of the needle plane. From this side the chest wall
-     sits below the breast and the skin above - the way an anatomical plate is drawn - instead
-     of the breast hanging under the ribs. */
-  _planeN.multiplyScalar(-1);
-  _planeN.y = 0.22; _planeN.normalize();
+  /* Stay on the FRONT-lateral side of the same breast. The perpendicular to the needle plane
+     has two directions; taking the one facing away from the chest (positive Z) keeps the
+     camera on the side the reader is already looking from, instead of swinging round to the
+     opposite breast. */
+  if(_planeN.z < 0) _planeN.multiplyScalar(-1);
+  _planeN.z = Math.max(_planeN.z, 0.35);   /* bias toward the front so it reads as lateral */
+  _planeN.y = 0.18; _planeN.normalize();
   const PROC_YAW = Math.atan2(_planeN.x, _planeN.z);
   const PROC_PITCH = Math.asin(_planeN.y); /* 45 degrees from below for the needle */
   const STD_YAW=FRONT_YAW, STD_PITCH=FRONT_PITCH;
