@@ -26,11 +26,11 @@
 
     {t:"Numbing the area",
      n:"Local anaesthetic is injected into the skin and deeper into the breast. It stings for a few seconds, and then the area goes numb. You stay awake the whole time.",
-     a:{form:1, xray:0.45, lumpHi:0.6, probe:1, needle:0, passes:0, clip:0, dressing:0, labels:1}},
+     a:{form:1, xray:0.45, lumpHi:0.6, probe:1, needle:0, passes:0, clip:0, dressing:0, syringe:1, labels:1}},
 
     {t:"The needle goes in",
      n:"A small nick is made in the skin. Watching the screen, the doctor guides the needle in under the probe and into the lump.",
-     a:{form:1, xray:0.4, lumpHi:0.8, probe:1, needle:1, passes:0, clip:0, dressing:0, labels:1}},
+     a:{form:1, xray:0.4, lumpHi:0.8, probe:1, needle:1, passes:0, clip:0, dressing:0, scalpel:1, labels:1}},
 
     {t:"Taking the samples",
      n:"The device fires and takes a thin core of tissue with a click. This is repeated a few times, each one a quick click, until enough tissue has been collected.",
@@ -60,11 +60,12 @@
     chips.appendChild(b);
   });
 
-  const A={form:0,xray:0,lumpHi:0,probe:0,needle:0,passes:0,clip:0,dressing:0,labels:0};
+  const A={form:0,xray:0,lumpHi:0,probe:0,needle:0,passes:0,clip:0,dressing:0,syringe:0,scalpel:0,labels:0};
   const TGT=Object.assign({},A);
 
   function setStep(i){
     cur=i; const s=STEPS[i];
+    clickSequence(!!(s.a && s.a.passes>0.5));
     label.innerHTML='<b>Step '+(i+1)+' of '+STEPS.length+'.</b> '+s.t;
     note.textContent=s.n;
     srText.textContent='Step '+(i+1)+' of '+STEPS.length+'. '+s.t+'. '+s.n;
@@ -255,6 +256,36 @@
     return true;
   }
 
+  /* The biopsy device fires with a hard click. Synthesised with Web Audio rather than a
+     sampled asset: a noise transient for the mechanism plus a low thump for the body of the
+     instrument. Respects the sound toggle, so a muted page stays silent. */
+  let clickCtx=null, clickTimer=null;
+  function boom(){
+    if(!audioOn) return;
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+      clickCtx=clickCtx||new AC();
+      const c=clickCtx, t=c.currentTime;
+      const n=Math.max(1,Math.floor(c.sampleRate*0.09));
+      const buf=c.createBuffer(1,n,c.sampleRate), d=buf.getChannelData(0);
+      for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.006));
+      const src=c.createBufferSource(); src.buffer=buf;
+      const g=c.createGain(); g.gain.setValueAtTime(1.0,t);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.09);
+      src.connect(g); g.connect(c.destination); src.start(t);
+      const o=c.createOscillator(); o.type='sine';
+      o.frequency.setValueAtTime(180,t); o.frequency.exponentialRampToValueAtTime(48,t+0.09);
+      const og=c.createGain(); og.gain.setValueAtTime(0.55,t);
+      og.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+      o.connect(og); og.connect(c.destination); o.start(t); o.stop(t+0.13);
+    }catch(_){}
+  }
+  function clickSequence(on){
+    if(clickTimer){ clearInterval(clickTimer); clickTimer=null; }
+    if(!on || !audioOn) return;
+    boom(); clickTimer=setInterval(boom, 1400);
+  }
+
   if(btnSound){
     btnSound.onclick=()=>{
       audioOn=!audioOn;
@@ -393,7 +424,9 @@
   /* ONE camera orientation for the whole page. Every step - wide shots and close-ups alike -
      is seen from below the chest, looking slightly up, at the same yaw. Only the distance
      changes with the step, so the anatomy never appears to twist between chapters. */
-  const STD_YAW=0.62, STD_PITCH=-0.26;
+  const FRONT_YAW=0.02, FRONT_PITCH=0.02;      /* square-on, the page's opening view */
+  const PROC_YAW=0.42,  PROC_PITCH=-Math.PI/4; /* 45 degrees from below for the needle */
+  const STD_YAW=FRONT_YAW, STD_PITCH=FRONT_PITCH;
   let yaw=STD_YAW, pitch=STD_PITCH, autoRotate=false, manual=false;
   const _bis=new THREE.Vector3();      /* reused each frame: no allocation in the render loop */
   let zoomMul=1.0, dist=0.9;
@@ -536,11 +569,14 @@
        axis points inward, so the bisector is +Z minus AXIS. wantYaw/wantPitch are that direction
        in the same spherical convention the camera placement below already uses. */
     if(!manual){
-      /* Always return to the standard view, whatever the step. `manual` still wins, so a
-         reader who drags the model keeps their own angle until the step changes. */
+      /* One rule for the whole page: square-on while the page is explaining, then a tilt to
+         45 degrees below the chest as the needle goes in - the angle you would actually see a
+         biopsy from. `manual` still wins, so a reader who drags keeps their angle. */
+      const tgtY = proc>0.05 ? PROC_YAW   : FRONT_YAW;
+      const tgtP = proc>0.05 ? PROC_PITCH : FRONT_PITCH;
       const k=Math.min(1,dt*1.6);
-      yaw  +=(STD_YAW  -yaw  )*k;
-      pitch+=(STD_PITCH-pitch)*k;
+      yaw  +=(tgtY - yaw  )*k;
+      pitch+=(tgtP - pitch)*k;
     }
 
     /* ---------- skin: fades as the x-ray view rises ---------------------- */
@@ -586,6 +622,8 @@
 
     /* ---------- dressing -------------------------------------------------- */
     P.dressing.visible = A.dressing>0.03;
+    if(P.syringe) P.syringe.visible = A.syringe>0.03;
+    if(P.scalpel) P.scalpel.visible = A.scalpel>0.03;
     /* A little self-light on the shaft keeps it visible where it passes through glandular
        tissue, without turning it into a light sabre. */
     if(P.needleMats) P.needleMats.forEach(m=>{ m.emissiveIntensity=0.22*Math.max(A.needle, A.passes); m.needsUpdate=true; });

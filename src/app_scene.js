@@ -30,7 +30,7 @@ function buildThreeScene(THREE, root){
   const needleMats=[];
   const matFor=(role)=>{
     const skin = role==='body';
-    const metal = role==='needle' || role==='clip';
+    const metal = role==='needle' || role==='clip' || role==='scalpel' || role==='syringe';
     const m=new THREE.MeshPhysicalMaterial({
       color: ROLE_COL[role]!==undefined ? ROLE_COL[role] : 0xbfc6d0,
       roughness: metal ? 0.28 : (skin ? 0.62 : 0.55),
@@ -85,6 +85,8 @@ function buildThreeScene(THREE, root){
   /* The dressing starts hidden; the timeline shows it at the end. The clip likewise only
      appears once it has been deployed, so the page never promises a marker before its step. */
   if(G.clip) G.clip.visible=false;
+  if(G.syringe) G.syringe.visible=false;
+  if(G.scalpel) G.scalpel.visible=false;
   if(G.dressing) G.dressing.visible=false;
 
   return {
@@ -99,6 +101,7 @@ function buildThreeScene(THREE, root){
       gland: G.gland,
       probe: G.probe, needle: G.needle,
       clip: G.clip, dressing: G.dressing,
+      syringe: G.syringe, scalpel: G.scalpel,
       home: { needle: NEEDLE_HOME, probe: PROBE_HOME, clip: CLIP_HOME }
     },
     anchors: { LUMP_WORLD: LUMP, ENTRY, AXIS, NEEDLE_HOME }

@@ -134,8 +134,8 @@ sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 # The needle enters in line with the probe's long axis, at its foot end - the way a
 # freehand US-guided biopsy is actually done. Running it across the probe is what made the
 # shaft collide with the handle no matter where the probe was put.
-entry  = Vector((lump.x - 0.030, lump.y - 0.088, lump.z + 0.030))
-tip    = lump + Vector((0, 0, 0))
+entry  = Vector((lump.x - 0.070, lump.y - 0.010, lump.z + 0.040))
+tip    = lump + (lump - entry).normalized() * 0.022   # crosses the lump and exits
 d      = (tip - entry).normalized()
 
 cyl("needle__shaft", entry - d*0.050, tip, 0.0018, METAL)
@@ -153,7 +153,7 @@ tb.rotation_mode = 'QUATERNION'; tb.rotation_quaternion = d.to_track_quat('Z','Y
 # Geometry follows the FNAC leaflet's probe, which reads correctly: a flat rectangular
 # footprint ON the skin, a tapered body behind it, a cylindrical handle angled up and back,
 # and a cable. The skin normal here is +Z and the long axis runs head-to-foot (Y).
-px, py = lump.x - 0.055, lump.y
+px, py = lump.x - 0.030, lump.y + 0.048
 zs = []
 for dx in (-0.011, 0.0, 0.011):
     for dy in (-0.024, 0.0, 0.024):
@@ -185,7 +185,7 @@ def _skin_at(x, y):
     hit, loc, nor, idx = body.ray_cast(Vector((x, y, 0.5)), Vector((0, 0, -1)))
     return loc.z if hit else skin_z
 slope = (_skin_at(px, py + 0.024) - _skin_at(px, py - 0.024)) / 0.048
-tilt = math.atan(slope)
+tilt = max(-0.17, min(0.17, math.atan(slope)))   # cap the tilt; a steep slope would bury an edge
 pivot = Vector((px, py, base))
 R = (Matrix.Translation(pivot) @ Matrix.Rotation(tilt, 4, 'X') @ Matrix.Translation(-pivot))
 for o in probe_parts:
@@ -233,6 +233,33 @@ cyl("dressing__pad", Vector((entry.x, entry.y, d_skin + PAD_H)),
     Vector((entry.x, entry.y, d_skin + GAP)), PAD_R, WHITE, 28)
 box("dressing__strip", Vector((entry.x, entry.y, d_skin + PAD_H + 0.0012)),
     (PAD_R * 1.9, PAD_R * 0.55, 0.0016), WHITE, bevel=0.0006)
+
+# ------------------------------------------------ local anaesthetic syringe
+def _skin(x, y):
+    hit, loc, nor, idx = body.ray_cast(Vector((x, y, 0.5)), Vector((0, 0, -1)))
+    return loc.z if hit else lump.z + 0.030
+
+sx, sy = lump.x + 0.034, lump.y + 0.020
+s_tip  = Vector((sx, sy, _skin(sx, sy) + 0.002))
+s_dir  = (lump - s_tip).normalized()
+needle_back = s_tip - s_dir*0.028
+barrel0 = needle_back - s_dir*0.004
+barrel1 = barrel0 - s_dir*0.052
+cyl("syringe__needle", s_tip, needle_back, 0.0006, METAL, 10)
+cyl("syringe__hub",    needle_back, barrel0, 0.0018, WHITE, 12)
+cyl("syringe__barrel", barrel0, barrel1, 0.0050, WHITE, 20)
+cyl("syringe__plunger", barrel1, barrel1 - s_dir*0.026, 0.0022, PROBE, 12)
+cyl("syringe__finger", barrel1, barrel1 - s_dir*0.003, 0.0075, PROBE, 16)
+print("SYRINGE tip", tuple(round(c,3) for c in s_tip))
+
+# ------------------------------------------------------------- scalpel
+c_x, c_y = lump.x - 0.048, lump.y + 0.004
+c_tip = Vector((c_x, c_y, _skin(c_x, c_y) + 0.002))
+c_dir = (c_tip - Vector((c_x - 0.030, c_y - 0.040, c_tip.z + 0.055))).normalized()
+cyl("scalpel__handle", c_tip, c_tip + c_dir*0.075, 0.0045, PROBE, 12)
+blade = box("scalpel__blade", c_tip - c_dir*0.004, (0.013, 0.004, 0.0016), METAL, bevel=0.0002)
+blade.rotation_mode = 'QUATERNION'; blade.rotation_quaternion = c_dir.to_track_quat('Z','Y')
+print("SCALPEL tip", tuple(round(c,3) for c in c_tip))
 
 # ------------------------------------------------------------------- export
 # The page assigns its own materials per role (app_scene.js), so the source textures would

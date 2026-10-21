@@ -105,5 +105,7 @@ const ROLE_COL={
   probe:0x3d4553,       // ultrasound probe, dark slate
   needle:0xf2f5f8,      // needle and marker clip, near-white metal
   clip:0xc9ced6,
+  scalpel:0xd7dbe2,     // small scalpel used for the skin nick
+  syringe:0xeaf0f7,     // local-anaesthetic syringe
   dressing:0xf5f0e6};   // pale dressing
 
