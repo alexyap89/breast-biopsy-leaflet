@@ -1288,8 +1288,13 @@ function buildThreeScene(THREE, root){
      camera on the side the reader is already looking from, instead of swinging round to the
      opposite breast. */
   if(_planeN.z < 0) _planeN.multiplyScalar(-1);
-  _planeN.z = Math.max(_planeN.z, 0.35);   /* bias toward the front so it reads as lateral */
-  _planeN.y = 0.18; _planeN.normalize();
+  /* Oblique rather than a pure side-on section: pull the direction most of the way round to
+     the front so the breast is seen at an angle, with a little elevation. A straight lateral
+     cut put the flank and buttock in frame and showed the breast edge-on. */
+  _planeN.addScaledVector(new THREE.Vector3(0, 0, 1), 0.7);
+  _planeN.normalize();
+  _planeN.y = 0.45;
+  _planeN.normalize();
   const PROC_YAW = Math.atan2(_planeN.x, _planeN.z);
   const PROC_PITCH = Math.asin(_planeN.y); /* 45 degrees from below for the needle */
   const STD_YAW=FRONT_YAW, STD_PITCH=FRONT_PITCH;
@@ -1560,8 +1565,8 @@ function buildThreeScene(THREE, root){
     if(close>0.3){
       /* The section steps frame tight on the lesion: this is the shot that has to show the
          needle crossing its centre. */
-      const sectionStep = cur>=4 && cur<=6;
-      const half = sectionStep ? 0.075 : 0.20;
+      const sectionStep = cur>=2 && cur<=6;   /* steps 3-7 frame the breast, not the torso */
+      const half = sectionStep ? 0.062 : 0.20;
       box.setFromCenterAndSize(focus, new THREE.Vector3(half*2, half*2, half*1.7));
     }
     else {
@@ -1577,7 +1582,7 @@ function buildThreeScene(THREE, root){
     if(P.dressing.visible) box.union(new THREE.Box3().setFromObject(P.dressing));
     /* The floor keeps the camera out of the body on wide steps; on the close-ups the box is
        already small, so a 0.62 m floor would undo the framing entirely. */
-    const minD = close>0.3 ? 0.45 : 0.62;
+    const minD = close>0.3 ? 0.20 : 0.62;
     /* The wide steps use a fixed distance rather than a fit of a nominal box: the torso has
        arms and a head, and fitting a box around it always leaves the body small in frame. */
     const dTarget = close>0.3
