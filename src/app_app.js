@@ -424,9 +424,9 @@
   /* ONE camera orientation for the whole page. Every step - wide shots and close-ups alike -
      is seen from below the chest, looking slightly up, at the same yaw. Only the distance
      changes with the step, so the anatomy never appears to twist between chapters. */
-  /* "Frontal" here means from the head end looking down the body: the patient's face is
-     square to the reader, which is what tells them how the figure is lying. */
-  const FRONT_YAW=0.0, FRONT_PITCH=-0.45;
+  /* "Frontal" means square-on to the chest: the camera sits in front of the patient and
+     looks straight at both breasts, which is how the paper leaflet is laid out. */
+  const FRONT_YAW=0.0, FRONT_PITCH=0.78;   /* steep enough to clear the head and show both breasts */
   const PROC_YAW=0.42,  PROC_PITCH=-Math.PI/4; /* 45 degrees from below for the needle */
   const STD_YAW=FRONT_YAW, STD_PITCH=FRONT_PITCH;
   let yaw=STD_YAW, pitch=STD_PITCH, autoRotate=false, manual=false;
@@ -651,7 +651,13 @@
       const half = A.dressing>0.3 ? 0.055 : 0.085;   /* a 32 mm dressing needs a tighter box than a lump */
       box.setFromCenterAndSize(focus, new THREE.Vector3(half*2, half*2, half*1.7));
     }
-    else { box.setFromObject(P.body); }
+    else {
+      /* Both breasts, and nothing else: framing the whole torso drags the head into the
+         foreground and it covers the chest. */
+      box.setFromCenterAndSize(
+        new THREE.Vector3(LUMP_WORLD.x, LUMP_WORLD.y - 0.02, LUMP_WORLD.z - 0.02),
+        new THREE.Vector3(0.30, 0.34, 0.22));
+    }
     if(A.xray>0.02){ [P.lesion,P.gland].forEach(g=>{ if(g) box.union(new THREE.Box3().setFromObject(g)); }); }
     if(A.probe>0.05) box.union(new THREE.Box3().setFromObject(P.probe));
     if(P.dressing.visible) box.union(new THREE.Box3().setFromObject(P.dressing));
