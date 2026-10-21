@@ -358,7 +358,9 @@
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true,
                                             preserveDrawingBuffer:true});
   renderer.setClearColor(0x000000,0);
-  const camera = new THREE.PerspectiveCamera(38, 1.6, 0.1, 200);
+  /* Narrow lens: a 38-degree FOV at half a metre bends a 0.66 m torso so far that a
+     straight-on view reads as looking down from above. 22 degrees plus distance is flatter. */
+  const camera = new THREE.PerspectiveCamera(22, 1.6, 0.05, 200);
 
   /* ---------------------------------------------------------- framing -----
      The scene is one unit = 5 cm, so the whole patient (head to shoulders) is
@@ -426,7 +428,7 @@
      changes with the step, so the anatomy never appears to twist between chapters. */
   /* "Frontal" means square-on to the chest: the camera sits in front of the patient and
      looks straight at both breasts, which is how the paper leaflet is laid out. */
-  const FRONT_YAW=0.0, FRONT_PITCH=0.12;   /* near square-on to the chest */
+  const FRONT_YAW=0.0, FRONT_PITCH=0.0;    /* dead-on to the chest, no elevation at all */
   const PROC_YAW=0.42,  PROC_PITCH=-Math.PI/4; /* 45 degrees from below for the needle */
   const STD_YAW=FRONT_YAW, STD_PITCH=FRONT_PITCH;
   let yaw=STD_YAW, pitch=STD_PITCH, autoRotate=false, manual=false;
@@ -648,25 +650,28 @@
     const focus = A.dressing>0.3 ? ENTRY : LUMP_WORLD;
     const close = Math.max(A.lumpHi, A.dressing);
     if(close>0.3){
-      const half = A.dressing>0.3 ? 0.055 : 0.085;   /* a 32 mm dressing needs a tighter box than a lump */
+      const half = A.dressing>0.3 ? 0.10 : 0.20;   /* wide enough to show the needle's path, not just the lump */
       box.setFromCenterAndSize(focus, new THREE.Vector3(half*2, half*2, half*1.7));
     }
     else {
       /* Both breasts, and nothing else: framing the whole torso drags the head into the
          foreground and it covers the chest. */
-      box.setFromObject(P.body);   /* the look point must be the body's centre, not the chest */
+      /* Both breasts, dead-on: a box around the chest, not the whole patient. */
+      box.setFromCenterAndSize(
+        new THREE.Vector3(0.0, LUMP_WORLD.y + 0.02, LUMP_WORLD.z),   /* chest midline, not the lump */
+        new THREE.Vector3(0.30, 0.26, 0.22));
     }
     if(A.xray>0.02){ [P.lesion,P.gland].forEach(g=>{ if(g) box.union(new THREE.Box3().setFromObject(g)); }); }
     if(A.probe>0.05) box.union(new THREE.Box3().setFromObject(P.probe));
     if(P.dressing.visible) box.union(new THREE.Box3().setFromObject(P.dressing));
     /* The floor keeps the camera out of the body on wide steps; on the close-ups the box is
        already small, so a 0.62 m floor would undo the framing entirely. */
-    const minD = close>0.3 ? 0.14 : 0.62;
+    const minD = close>0.3 ? 0.45 : 0.62;
     /* The wide steps use a fixed distance rather than a fit of a nominal box: the torso has
        arms and a head, and fitting a box around it always leaves the body small in frame. */
     const dTarget = close>0.3
       ? Math.max(minD, fitDist(box)*(1-0.2*A.lumpHi)*zoomMul*(1-0.25*proc))
-      : 0.78*zoomMul;
+      : 2.15*zoomMul;
     dist+=(dTarget-dist)*Math.min(1,dt*3.0);
     box.getCenter(_lookT);
     /* Once the lump is the subject, aim at it rather than at the middle of the torso: the

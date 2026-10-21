@@ -57,6 +57,13 @@ function buildThreeScene(THREE, root){
     scene.add(g);
   }
 
+  /* The GLB arrives standing along Z: the glTF Y-up conversion undid the supine pose that
+     build_breast.py applies in Blender. Lay it down here, once, before any anchor is measured,
+     so the body runs along Y and the chest faces +Z - which is the basis the camera, the
+     labels and every anchor assume. */
+  for(const role in G){ G[role].rotation.x = -Math.PI/2; }
+  scene.updateMatrixWorld(true);
+
   const centreOf=(grp)=>{
     const b=new THREE.Box3().setFromObject(grp);
     return b.getCenter(new THREE.Vector3());
