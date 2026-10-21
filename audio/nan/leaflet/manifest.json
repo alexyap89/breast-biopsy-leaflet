@@ -18,9 +18,9 @@
    "title": "您的乳腺与肿块",
    "characters": 51,
    "words": 2,
-   "duration_s": 10.0,
-   "bytes": 60525,
-   "wpm": 12.0,
+   "duration_s": 9.63,
+   "bytes": 58365,
+   "wpm": 12.5,
    "engine": "omnivoice"
   },
   "step02": {
@@ -38,9 +38,9 @@
    "title": "清洁皮肤",
    "characters": 44,
    "words": 2,
-   "duration_s": 8.28,
-   "bytes": 50157,
-   "wpm": 14.5,
+   "duration_s": 8.19,
+   "bytes": 49725,
+   "wpm": 14.7,
    "engine": "omnivoice"
   },
   "step04": {
@@ -48,29 +48,29 @@
    "title": "麻醉该处",
    "characters": 53,
    "words": 2,
-   "duration_s": 10.09,
-   "bytes": 61173,
-   "wpm": 11.9,
+   "duration_s": 10.24,
+   "bytes": 62037,
+   "wpm": 11.7,
    "engine": "omnivoice"
   },
   "step05": {
    "step": 5,
-   "title": "针进入",
-   "characters": 40,
+   "title": "皮肤上的小切口",
+   "characters": 53,
    "words": 2,
-   "duration_s": 7.63,
-   "bytes": 46269,
-   "wpm": 15.7,
+   "duration_s": 10.24,
+   "bytes": 62037,
+   "wpm": 11.7,
    "engine": "omnivoice"
   },
   "step06": {
    "step": 6,
-   "title": "取样",
-   "characters": 59,
+   "title": "活检针进入",
+   "characters": 48,
    "words": 2,
-   "duration_s": 10.64,
-   "bytes": 64413,
-   "wpm": 11.3,
+   "duration_s": 9.0,
+   "bytes": 54477,
+   "wpm": 13.3,
    "engine": "omnivoice"
   },
   "step07": {
@@ -88,9 +88,9 @@
    "title": "加压，然后敷料",
    "characters": 47,
    "words": 2,
-   "duration_s": 8.88,
-   "bytes": 53829,
-   "wpm": 13.5,
+   "duration_s": 8.85,
+   "bytes": 53613,
+   "wpm": 13.6,
    "engine": "omnivoice"
   },
   "step09": {
@@ -105,8 +105,8 @@
   }
  },
  "total": {
-  "duration_s": 92.8,
-  "bytes": 561573,
+  "duration_s": 93.43,
+  "bytes": 565461,
   "steps": 9
  }
 }

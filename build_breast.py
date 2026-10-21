@@ -18,7 +18,9 @@ page's loader takes the text before `__` as the role.
 import bpy, bmesh, sys, os, math
 from mathutils import Vector, Matrix, Euler
 
-SRC = "/Users/alexyap/Downloads/human_female_breast_anatomy.glb"
+# The FBX is the same topology as the public GLB but ships the original albedo maps, so the
+# skin and gland can be textured instead of flat-coloured. Geometry is decimated as before.
+SRC = "/tmp/breasthd/Breast/Breast.fbx"
 OUT = sys.argv[sys.argv.index('--') + 1] if '--' in sys.argv else "model/breast_scene.glb"
 os.makedirs(os.path.dirname(OUT) or '.', exist_ok=True)
 
@@ -27,7 +29,14 @@ LESION_DEPTH  = 0.022     # under the skin surface
 LESION_RADIUS = 0.011
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.gltf(filepath=SRC)
+bpy.ops.import_scene.fbx(filepath=SRC)
+
+# Downscale every packed image to 512 px: the originals are 1-2 MB each and the page shows
+# the model at a few hundred pixels wide on a phone.
+for img in bpy.data.images:
+    if img.size[0] > 512 or img.size[1] > 512:
+        img.scale(512, 512)
+        print("texture scaled:", img.name, tuple(img.size))
 
 # ---------------------------------------------------------------- bake + name
 meshes = [o for o in bpy.data.objects if o.type == 'MESH']
@@ -305,7 +314,8 @@ for o in bpy.data.objects:
             poly.use_smooth = True
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', use_selection=True,
-                          export_apply=True, export_yup=True)
+                          export_apply=True, export_yup=True,
+                          export_image_format='AUTO')
 print("WROTE", OUT, os.path.getsize(OUT))
 for o in bpy.data.objects:
     if o.type == 'MESH':

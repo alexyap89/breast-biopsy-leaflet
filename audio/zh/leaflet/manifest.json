@@ -18,9 +18,9 @@
    "title": "您的乳腺与肿块",
    "characters": 51,
    "words": 2,
-   "duration_s": 9.74,
-   "bytes": 59013,
-   "wpm": 12.3,
+   "duration_s": 9.9,
+   "bytes": 59877,
+   "wpm": 12.1,
    "engine": "omnivoice"
   },
   "step02": {
@@ -28,9 +28,9 @@
    "title": "用超声找出肿块",
    "characters": 56,
    "words": 2,
-   "duration_s": 10.49,
-   "bytes": 63549,
-   "wpm": 11.4,
+   "duration_s": 10.59,
+   "bytes": 64197,
+   "wpm": 11.3,
    "engine": "omnivoice"
   },
   "step03": {
@@ -38,9 +38,9 @@
    "title": "清洁皮肤",
    "characters": 44,
    "words": 2,
-   "duration_s": 8.01,
-   "bytes": 48645,
-   "wpm": 15.0,
+   "duration_s": 8.22,
+   "bytes": 49941,
+   "wpm": 14.6,
    "engine": "omnivoice"
   },
   "step04": {
@@ -48,29 +48,29 @@
    "title": "麻醉该处",
    "characters": 53,
    "words": 2,
-   "duration_s": 10.06,
-   "bytes": 60957,
-   "wpm": 11.9,
+   "duration_s": 10.15,
+   "bytes": 61389,
+   "wpm": 11.8,
    "engine": "omnivoice"
   },
   "step05": {
    "step": 5,
-   "title": "针进入",
-   "characters": 40,
+   "title": "皮肤上的小切口",
+   "characters": 53,
    "words": 2,
-   "duration_s": 7.41,
-   "bytes": 44973,
-   "wpm": 16.2,
+   "duration_s": 10.01,
+   "bytes": 60741,
+   "wpm": 12.0,
    "engine": "omnivoice"
   },
   "step06": {
    "step": 6,
-   "title": "取样",
-   "characters": 59,
+   "title": "活检针进入",
+   "characters": 48,
    "words": 2,
-   "duration_s": 10.5,
-   "bytes": 63549,
-   "wpm": 11.4,
+   "duration_s": 8.86,
+   "bytes": 53829,
+   "wpm": 13.5,
    "engine": "omnivoice"
   },
   "step07": {
@@ -78,8 +78,8 @@
    "title": "标记夹",
    "characters": 57,
    "words": 2,
-   "duration_s": 10.88,
-   "bytes": 65925,
+   "duration_s": 10.87,
+   "bytes": 65709,
    "wpm": 11.0,
    "engine": "omnivoice"
   },
@@ -88,9 +88,9 @@
    "title": "加压，然后敷料",
    "characters": 47,
    "words": 2,
-   "duration_s": 8.6,
-   "bytes": 52101,
-   "wpm": 14.0,
+   "duration_s": 8.77,
+   "bytes": 53181,
+   "wpm": 13.7,
    "engine": "omnivoice"
   },
   "step09": {
@@ -98,15 +98,15 @@
    "title": "之后，以及检查结果",
    "characters": 79,
    "words": 2,
-   "duration_s": 15.17,
-   "bytes": 91629,
+   "duration_s": 15.27,
+   "bytes": 92277,
    "wpm": 7.9,
    "engine": "omnivoice"
   }
  },
  "total": {
-  "duration_s": 90.86,
-  "bytes": 550341,
+  "duration_s": 92.64,
+  "bytes": 561141,
   "steps": 9
  }
 }

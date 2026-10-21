@@ -16,11 +16,11 @@
   "step01": {
    "step": 1,
    "title": "Payudara dan benjolan anda",
-   "characters": 222,
+   "characters": 220,
    "words": 31,
-   "duration_s": 13.94,
+   "duration_s": 13.96,
    "bytes": 84285,
-   "wpm": 133.4,
+   "wpm": 133.2,
    "engine": "omnivoice"
   },
   "step02": {
@@ -38,9 +38,9 @@
    "title": "Membersihkan kulit",
    "characters": 180,
    "words": 27,
-   "duration_s": 10.79,
-   "bytes": 65277,
-   "wpm": 150.1,
+   "duration_s": 11.38,
+   "bytes": 68949,
+   "wpm": 142.4,
    "engine": "omnivoice"
   },
   "step04": {
@@ -48,29 +48,29 @@
    "title": "Mematikan kawasan",
    "characters": 189,
    "words": 28,
-   "duration_s": 11.95,
-   "bytes": 72189,
-   "wpm": 140.6,
+   "duration_s": 11.96,
+   "bytes": 72405,
+   "wpm": 140.5,
    "engine": "omnivoice"
   },
   "step05": {
    "step": 5,
-   "title": "Jarum dimasukkan",
-   "characters": 145,
-   "words": 22,
-   "duration_s": 9.24,
-   "bytes": 55989,
-   "wpm": 142.9,
+   "title": "Sedikit torehan pada kulit",
+   "characters": 203,
+   "words": 32,
+   "duration_s": 12.76,
+   "bytes": 77157,
+   "wpm": 150.5,
    "engine": "omnivoice"
   },
   "step06": {
    "step": 6,
-   "title": "Meng mengambil sampel",
-   "characters": 183,
-   "words": 27,
-   "duration_s": 11.59,
-   "bytes": 70029,
-   "wpm": 139.8,
+   "title": "Jarum biopsi dimasukkan",
+   "characters": 198,
+   "words": 28,
+   "duration_s": 12.49,
+   "bytes": 75429,
+   "wpm": 134.5,
    "engine": "omnivoice"
   },
   "step07": {
@@ -88,25 +88,25 @@
    "title": "Tekanan, kemudian balutan",
    "characters": 180,
    "words": 26,
-   "duration_s": 11.78,
+   "duration_s": 11.79,
    "bytes": 71325,
-   "wpm": 132.4,
+   "wpm": 132.3,
    "engine": "omnivoice"
   },
   "step09": {
    "step": 9,
    "title": "Selepas itu, dan keputusan anda",
-   "characters": 255,
-   "words": 37,
-   "duration_s": 16.0,
-   "bytes": 96597,
-   "wpm": 138.8,
+   "characters": 245,
+   "words": 36,
+   "duration_s": 15.36,
+   "bytes": 92709,
+   "wpm": 140.6,
    "engine": "omnivoice"
   }
  },
  "total": {
-  "duration_s": 113.17,
-  "bytes": 684261,
+  "duration_s": 117.58,
+  "bytes": 710829,
   "steps": 9
  }
 }

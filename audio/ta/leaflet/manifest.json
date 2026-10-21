@@ -55,22 +55,22 @@
   },
   "step05": {
    "step": 5,
-   "title": "ஊசி உள்ளே செல்லும்",
-   "characters": 152,
-   "words": 18,
-   "duration_s": 10.12,
-   "bytes": 61389,
-   "wpm": 106.7,
+   "title": "சிறு கீறல்",
+   "characters": 163,
+   "words": 22,
+   "duration_s": 11.12,
+   "bytes": 67221,
+   "wpm": 118.7,
    "engine": "omnivoice"
   },
   "step06": {
    "step": 6,
-   "title": "மாதிரிகள் எடுத்தல்",
-   "characters": 203,
-   "words": 27,
-   "duration_s": 13.4,
-   "bytes": 81045,
-   "wpm": 120.9,
+   "title": "ஊசி உள்ளே செல்கிறது",
+   "characters": 177,
+   "words": 21,
+   "duration_s": 12.24,
+   "bytes": 73917,
+   "wpm": 102.9,
    "engine": "omnivoice"
   },
   "step07": {
@@ -105,8 +105,8 @@
   }
  },
  "total": {
-  "duration_s": 126.64,
-  "bytes": 765261,
+  "duration_s": 126.48,
+  "bytes": 763965,
   "steps": 9
  }
 }

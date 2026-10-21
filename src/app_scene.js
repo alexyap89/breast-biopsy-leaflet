@@ -29,6 +29,8 @@ function buildThreeScene(THREE, root){
   const glandMats=[];
   const needleMats=[];
   const clipMats=[];
+  const ductMats=[];
+  const TEXTURED=new Set(['body','gland','duct','muscle']);
   const matFor=(role)=>{
     const skin = role==='body';
     const metal = role==='needle' || role==='clip' || role==='scalpel' || role==='syringe';
@@ -56,7 +58,23 @@ function buildThreeScene(THREE, root){
   const G={};
   for(const role in byRole){
     const g=new THREE.Group(); g.name=role;
-    byRole[role].forEach(o=>{ o.material=matFor(role); g.add(o); });
+    byRole[role].forEach(o=>{
+      /* Anatomical meshes arrive textured from the FBX; keep those maps and only tune the
+         surface. Props (probe, needle, clip, dressing) are authored here, so they get the
+         flat materials. */
+      const mapped = o.material && o.material.map && TEXTURED.has(role);
+      if(mapped){
+        o.material.roughness = role==='body' ? 0.72 : 0.6;
+        o.material.metalness = 0.0;
+        o.material.side = THREE.DoubleSide;
+        if(role==='body'){ o.material.transparent = true; skinMats.push(o.material); }
+        if(role==='gland') glandMats.push(o.material);
+        if(role==='duct') ductMats.push(o.material);
+      } else {
+        o.material = matFor(role);
+      }
+      g.add(o);
+    });
     G[role]=g;
     scene.add(g);
   }
@@ -108,6 +126,7 @@ function buildThreeScene(THREE, root){
       glandMats,
       needleMats,
       clipMats,
+      ductMats,
       body: G.body,
       lesion: G.lesion, lumpPivot,
       gland: G.gland,

@@ -400,18 +400,12 @@
 
   /* --------------------------------------------------------- DOM labels --- */
   const LABELS = [
-    {text:'Breast',      k:'k93', pos:LUMP_WORLD.clone().add(new THREE.Vector3(0.035,0.05,0.015)),
-                          shows:a=>a.form>.5&&a.xray<.4},
     {text:'The lump',    k:'k94', pos:LUMP_WORLD.clone(),
                           shows:a=>a.lumpHi>.5},
     {text:'Ultrasound probe', k:'k95', pos:ENTRY.clone().add(new THREE.Vector3(0.035,0.02,0.055)),
                           shows:a=>a.probe>.5},
     {text:'Needle',      k:'k96', pos:ENTRY.clone().add(new THREE.Vector3(-0.03,0,0.02)),
                           shows:a=>a.needle>.45},
-    {text:'Marker clip', k:'k97', pos:LUMP_WORLD.clone().add(new THREE.Vector3(0,-0.025,-0.005)),
-                          shows:a=>a.clip>.5},
-    {text:'Dressing',    k:'k98', pos:ENTRY.clone().add(new THREE.Vector3(0,0,0.012)),
-                          shows:a=>a.dressing>.5},
   ];
   const labelEls = LABELS.map(L=>{
     const d=document.createElement('div');
