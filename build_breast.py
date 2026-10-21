@@ -153,7 +153,7 @@ tb.rotation_mode = 'QUATERNION'; tb.rotation_quaternion = d.to_track_quat('Z','Y
 # Geometry follows the FNAC leaflet's probe, which reads correctly: a flat rectangular
 # footprint ON the skin, a tapered body behind it, a cylindrical handle angled up and back,
 # and a cable. The skin normal here is +Z and the long axis runs head-to-foot (Y).
-px, py = lump.x - 0.030, lump.y + 0.048
+px, py = lump.x - 0.006, lump.y + 0.022
 zs = []
 for dx in (-0.011, 0.0, 0.011):
     for dy in (-0.024, 0.0, 0.024):
@@ -190,7 +190,16 @@ pivot = Vector((px, py, base))
 R = (Matrix.Translation(pivot) @ Matrix.Rotation(tilt, 4, 'X') @ Matrix.Translation(-pivot))
 for o in probe_parts:
     o.matrix_world = R @ o.matrix_world
-print("PROBE footprint", FOOT_LEN, "x", FOOT_WID, "m | tilt", round(math.degrees(tilt), 1), "deg")
+
+# Turn the assembly a quarter turn about the skin normal: its long axis then runs along X,
+# the same axis the needle travels, so probe, lesion and needle share one imaging plane -
+# which is how a freehand ultrasound-guided biopsy is actually set up.
+Rz = (Matrix.Translation(Vector((px, py, base))) @ Matrix.Rotation(math.radians(90), 4, 'Z')
+      @ Matrix.Translation(-Vector((px, py, base))))
+for o in probe_parts:
+    o.matrix_world = Rz @ o.matrix_world
+print("PROBE footprint", FOOT_LEN, "x", FOOT_WID, "m | tilt", round(math.degrees(tilt), 1),
+      "deg | long axis along X, in line with the needle")
 
 # ------------------------------------------------------------- clearance check
 # True separation between the needle shaft and the whole probe, not just an x-gap: sample the

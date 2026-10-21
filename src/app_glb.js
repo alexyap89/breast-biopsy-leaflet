@@ -97,7 +97,7 @@ function parseGLB(A){
    carries facial detail again, and each of those is separate geometry so it can
    hold its own colour. They are listed in the skin-fade group in app_scene.js. */
 const ROLE_COL={
-  body:0xf2ece3,        // skin, pale rather than tan: the surface is the picture
+  body:0xe8c9a8,        // skin: a natural beige, not the near-white it was
   duct:0xc04a55,        // lactiferous ducts, the red structures in the cutaway
   muscle:0x9d4a44,      // pectoralis, deeper and duller than the ducts
   gland:0xf0c98a,       // breast glandular tissue

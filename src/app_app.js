@@ -580,8 +580,11 @@
       /* One rule for the whole page: square-on while the page is explaining, then a tilt to
          45 degrees below the chest as the needle goes in - the angle you would actually see a
          biopsy from. `manual` still wins, so a reader who drags keeps their angle. */
-      const tgtY = proc>0.05 ? PROC_YAW   : FRONT_YAW;
-      const tgtP = proc>0.05 ? PROC_PITCH : FRONT_PITCH;
+      /* Steps 3-8 (index 2-7) are the procedure: they get the 45-degree view even before the
+         needle is on screen, so the camera settles before anything happens. */
+      const procView = cur>=2 && cur<=7;
+      const tgtY = procView ? PROC_YAW   : FRONT_YAW;
+      const tgtP = procView ? PROC_PITCH : FRONT_PITCH;
       const k=Math.min(1,dt*1.6);
       yaw  +=(tgtY - yaw  )*k;
       pitch+=(tgtP - pitch)*k;
@@ -597,8 +600,9 @@
        starts occluding the anatomy behind it again. */
     /* The needle steps want the breast read as glass: at ~0.38 the lump, the needle and the
        probe are all visible at once while the silhouette still says "breast". */
-    const glass = Math.max(A.needle, A.passes);
-    const op = Math.max(0.22, 1 - 0.47*A.xray - 0.45*glass);
+    const markerStep = cur===6;                       /* step 7: the marker clip */
+    const glass = Math.max(A.needle, A.passes, markerStep?1:0);
+    const op = markerStep ? 0.16 : Math.max(0.22, 1 - 0.47*A.xray - 0.45*glass);
     const solid = op > 0.90;
     P.skinMats.forEach(m=>{ m.opacity=op; m.transparent=!solid;
       m.depthWrite=solid; m.needsUpdate=true; });
@@ -606,7 +610,13 @@
     /* ---------- interior ------------------------------------------------- */
     if(P.gland) P.gland.visible = A.xray > 0.02;
     if(P.glandMats) P.glandMats.forEach(m=>{
-      m.transparent=true; m.opacity=Math.max(0.14, 1-0.72*glass); m.depthWrite=false; m.needsUpdate=true; });
+      m.transparent=true; m.opacity=markerStep?0.10:Math.max(0.14, 1-0.72*glass);
+      m.depthWrite=false; m.needsUpdate=true; });
+    /* At the marker step the ducts and muscle would only be clutter: everything fades so the
+       clip itself is the one solid object on screen. */
+    if(P.duct) P.duct.visible = !markerStep;
+    if(P.G && P.G.muscle) P.G.muscle.visible = !markerStep;
+    if(P.clipMats) P.clipMats.forEach(m=>{ m.emissiveIntensity = markerStep?1.4:0; m.needsUpdate=true; });
 
     /* ---------- nodule emphasis ------------------------------------------ */
     /* The highlight is the material's own emissive, NOT a depth override. This

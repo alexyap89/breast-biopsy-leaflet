@@ -28,6 +28,7 @@ function buildThreeScene(THREE, root){
   const skinMats=[];
   const glandMats=[];
   const needleMats=[];
+  const clipMats=[];
   const matFor=(role)=>{
     const skin = role==='body';
     const metal = role==='needle' || role==='clip' || role==='scalpel' || role==='syringe';
@@ -46,6 +47,7 @@ function buildThreeScene(THREE, root){
     if(skin) skinMats.push(m);
     if(role==='gland') glandMats.push(m);
     if(role==='needle') needleMats.push(m);
+    if(role==='clip') clipMats.push(m);
     return m;
   };
 
@@ -103,6 +105,7 @@ function buildThreeScene(THREE, root){
       skinMats,
       glandMats,
       needleMats,
+      clipMats,
       body: G.body,
       lesion: G.lesion, lumpPivot,
       gland: G.gland,
