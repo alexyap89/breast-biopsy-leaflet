@@ -147,7 +147,7 @@ sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 # up and back into the lump at roughly 45 degrees. The earlier attempt put the entry BELOW the
 # lump in depth (z < lump.z), which is inside the body, not on the skin.
 entry  = lump + Vector((-0.012, 0.048, 0.030))   # screen-below the lump (see note below)
-tip    = lump + (lump - entry).normalized() * 0.009   # just through the lump, not across the whole breast
+tip    = lump + (lump - entry).normalized() * 0.016   # past the centre, still inside the lump's far half
 d      = (tip - entry).normalized()
 
 # A core-biopsy needle has a bevel tip, not a blunt end: the reference animation shows a

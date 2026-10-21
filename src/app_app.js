@@ -371,6 +371,11 @@
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true,
                                             preserveDrawingBuffer:true});
   renderer.setClearColor(0x000000,0);
+  /* Cross-section support: a clipping plane is moved through the lesion on the needle steps so
+     the breast is cut open in the needle's own plane. See the section block in step(). */
+  renderer.localClippingEnabled = true;
+  const sectionPlane = new THREE.Plane(new THREE.Vector3(0,0,1), 0);
+  const _secDir = new THREE.Vector3();
   /* Narrow lens: a 38-degree FOV at half a metre bends a 0.66 m torso so far that a
      straight-on view reads as looking down from above. 22 degrees plus distance is flatter. */
   const camera = new THREE.PerspectiveCamera(22, 1.6, 0.05, 200);
@@ -676,7 +681,10 @@
     const focus = A.dressing>0.3 ? ENTRY : LUMP_WORLD;
     const close = Math.max(A.lumpHi, A.dressing);
     if(close>0.3){
-      const half = A.dressing>0.3 ? 0.10 : 0.20;   /* wide enough to show the needle's path, not just the lump */
+      /* The section steps frame tight on the lesion: this is the shot that has to show the
+         needle crossing its centre. */
+      const sectionStep = cur>=4 && cur<=6;
+      const half = sectionStep ? 0.075 : (A.dressing>0.3 ? 0.10 : 0.20);   /* wide enough to show the needle's path, not just the lump */
       box.setFromCenterAndSize(focus, new THREE.Vector3(half*2, half*2, half*1.7));
     }
     else {
@@ -713,6 +721,19 @@
        seen square-on to the chest. */
     camera.up.set(0,1,0);
     camera.lookAt(look);
+
+    /* ---------- cross-section -------------------------------------------- */
+    /* Steps 5-7 cut the breast through the lesion, perpendicular to the view, so the needle is
+       seen crossing the centre of the lump in section instead of buried under skin. */
+    const sectionOn = cur>=4 && cur<=6;
+    const anat = [P.skinMats, P.glandMats, P.ductMats, P.muscleMats];
+    if(sectionOn){
+      _secDir.copy(look).sub(camera.position).normalize();
+      sectionPlane.normal.copy(_secDir);
+      sectionPlane.constant = -_secDir.dot(LUMP_WORLD) - 0.002;
+    }
+    anat.forEach(list=>{ if(!list) return;
+      list.forEach(m=>{ m.clippingPlanes = sectionOn ? [sectionPlane] : null; m.needsUpdate = true; }); });
 
     renderer.render(scene,camera);
 

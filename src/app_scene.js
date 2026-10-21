@@ -10,7 +10,10 @@
  */
 function buildThreeScene(THREE, root){
   const scene=new THREE.Scene();
-  scene.add(new THREE.AmbientLight(0x93a4c0,0.85));
+  scene.add(new THREE.AmbientLight(0x93a4c0,1.15));
+  /* A cut-away shows interior surfaces that receive little directional light, so a hemisphere
+     fill keeps the section readable instead of a dark cavern. */
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x5a4a42, 0.55));
   const key=new THREE.DirectionalLight(0xfff4e8,1.05); key.position.set(0.6,0.4,1.2); scene.add(key);
   const fill=new THREE.DirectionalLight(0x9fc0ff,0.5); fill.position.set(-0.9,0.2,0.6); scene.add(fill);
   /* Under-fill: supine, the breast overhangs the chest wall, and key light alone leaves the
@@ -31,6 +34,7 @@ function buildThreeScene(THREE, root){
   const needleMats=[];
   const clipMats=[];
   const ductMats=[];
+  const muscleMats=[];
   const TEXTURED=new Set(['body','gland','duct','muscle']);
   const matFor=(role)=>{
     const skin = role==='body';
@@ -72,6 +76,7 @@ function buildThreeScene(THREE, root){
         if(role==='body'){ o.material.transparent = true; skinMats.push(o.material); }
         if(role==='gland') glandMats.push(o.material);
         if(role==='duct') ductMats.push(o.material);
+        if(role==='muscle') muscleMats.push(o.material);
       } else {
         o.material = matFor(role);
       }
@@ -136,6 +141,7 @@ function buildThreeScene(THREE, root){
       needleMats,
       clipMats,
       ductMats,
+      muscleMats,
       body: G.body,
       lesion: G.lesion, lumpPivot,
       gland: G.gland,
