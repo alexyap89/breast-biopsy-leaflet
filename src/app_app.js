@@ -259,7 +259,7 @@
   /* The biopsy device fires with a hard click. Synthesised with Web Audio rather than a
      sampled asset: a noise transient for the mechanism plus a low thump for the body of the
      instrument. Respects the sound toggle, so a muted page stays silent. */
-  let clickCtx=null, clickTimer=null;
+  let clickCtx=null, clickTimers=[];
   function boom(){
     if(!audioOn) return;
     try{
@@ -281,9 +281,11 @@
     }catch(_){}
   }
   function clickSequence(on){
-    if(clickTimer){ clearInterval(clickTimer); clickTimer=null; }
+    clickTimers.forEach(clearTimeout); clickTimers=[];
     if(!on || !audioOn) return;
-    boom(); clickTimer=setInterval(boom, 1400);
+    /* Two clicks: the device is fired twice, it is not a metronome. */
+    boom();
+    clickTimers.push(setTimeout(boom, 1200));
   }
 
   if(btnSound){
@@ -428,8 +430,10 @@
      changes with the step, so the anatomy never appears to twist between chapters. */
   /* "Frontal" means square-on to the chest: the camera sits in front of the patient and
      looks straight at both breasts, which is how the paper leaflet is laid out. */
-  const FRONT_YAW=0.0, FRONT_PITCH=0.0;    /* dead-on to the chest, no elevation at all */
-  const PROC_YAW=0.42,  PROC_PITCH=-Math.PI/4; /* 45 degrees from below for the needle */
+  /* The chest faces -Z after the model is laid supine, so the camera sits on that side. */
+  const CHEST_SIDE=Math.PI;
+  const FRONT_YAW=CHEST_SIDE, FRONT_PITCH=0.0;
+  const PROC_YAW=CHEST_SIDE+0.42,  PROC_PITCH=-Math.PI/4; /* 45 degrees from below for the needle */
   const STD_YAW=FRONT_YAW, STD_PITCH=FRONT_PITCH;
   let yaw=STD_YAW, pitch=STD_PITCH, autoRotate=false, manual=false;
   const _bis=new THREE.Vector3();      /* reused each frame: no allocation in the render loop */
@@ -685,7 +689,7 @@
     /* Head at the TOP of the picture on every view: the camera's up vector runs along the
        body's -Y, not world +Y, which otherwise leaves the head at the bottom when the page is
        seen square-on to the chest. */
-    camera.up.set(0,-1,0);
+    camera.up.set(0,1,0);
     camera.lookAt(look);
 
     renderer.render(scene,camera);
