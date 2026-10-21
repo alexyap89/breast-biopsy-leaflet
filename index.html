@@ -1446,7 +1446,10 @@ function buildThreeScene(THREE, root){
       const tgtP = procView ? PROC_PITCH : FRONT_PITCH;
       /* The procedure view is rolled a quarter turn so the patient's head is on the LEFT and
          the base of the torso on the RIGHT - the way the section is laid out on a page. */
-      const tgtR = procView ? Math.PI/2 : 0;   /* head (-Y) to the LEFT, torso to the right */
+      /* The reader settled the orientation at 270 deg with the previous 90 deg auto-roll in
+         place, i.e. a full turn: no automatic roll at all. The section camera's own azimuth is
+         what puts the head on the left. */
+      const tgtR = 0;
       const k=Math.min(1,dt*1.6);
       yaw  +=(tgtY - yaw  )*k;
       pitch+=(tgtP - pitch)*k;
