@@ -234,32 +234,63 @@ cyl("dressing__pad", Vector((entry.x, entry.y, d_skin + PAD_H)),
 box("dressing__strip", Vector((entry.x, entry.y, d_skin + PAD_H + 0.0012)),
     (PAD_R * 1.9, PAD_R * 0.55, 0.0016), WHITE, bevel=0.0006)
 
-# ------------------------------------------------ local anaesthetic syringe
 def _skin(x, y):
     hit, loc, nor, idx = body.ray_cast(Vector((x, y, 0.5)), Vector((0, 0, -1)))
     return loc.z if hit else lump.z + 0.030
 
-sx, sy = lump.x + 0.034, lump.y + 0.020
-s_tip  = Vector((sx, sy, _skin(sx, sy) + 0.002))
+# ------------------------------------------------ local anaesthetic syringe
+# The anaesthetic goes in AT the point where the biopsy needle will enter, so that is where
+# the syringe sits: needle tip on the skin at the entry point, barrel standing off from it.
+s_tip  = Vector((entry.x, entry.y, _skin(entry.x, entry.y) + 0.001))
 s_dir  = (lump - s_tip).normalized()
-needle_back = s_tip - s_dir*0.028
+needle_back = s_tip - s_dir*0.026
 barrel0 = needle_back - s_dir*0.004
-barrel1 = barrel0 - s_dir*0.052
+barrel1 = barrel0 - s_dir*0.050
 cyl("syringe__needle", s_tip, needle_back, 0.0006, METAL, 10)
 cyl("syringe__hub",    needle_back, barrel0, 0.0018, WHITE, 12)
 cyl("syringe__barrel", barrel0, barrel1, 0.0050, WHITE, 20)
-cyl("syringe__plunger", barrel1, barrel1 - s_dir*0.026, 0.0022, PROBE, 12)
+cyl("syringe__plunger", barrel1, barrel1 - s_dir*0.024, 0.0022, PROBE, 12)
 cyl("syringe__finger", barrel1, barrel1 - s_dir*0.003, 0.0075, PROBE, 16)
 print("SYRINGE tip", tuple(round(c,3) for c in s_tip))
 
 # ------------------------------------------------------------- scalpel
-c_x, c_y = lump.x - 0.048, lump.y + 0.004
-c_tip = Vector((c_x, c_y, _skin(c_x, c_y) + 0.002))
-c_dir = (c_tip - Vector((c_x - 0.030, c_y - 0.040, c_tip.z + 0.055))).normalized()
-cyl("scalpel__handle", c_tip, c_tip + c_dir*0.075, 0.0045, PROBE, 12)
-blade = box("scalpel__blade", c_tip - c_dir*0.004, (0.013, 0.004, 0.0016), METAL, bevel=0.0002)
-blade.rotation_mode = 'QUATERNION'; blade.rotation_quaternion = c_dir.to_track_quat('Z','Y')
-print("SCALPEL tip", tuple(round(c,3) for c in c_tip))
+# A scalpel is a flat handle with a slender blade set at an angle to it, not a stick: the
+# blade is a wedge that tapers to a cutting edge, mounted off the handle's end.
+c_tip = Vector((entry.x - 0.004, entry.y - 0.006, _skin(entry.x, entry.y) + 0.0015))
+c_dir = (c_tip - Vector((c_tip.x - 0.045, c_tip.y - 0.055, c_tip.z + 0.060))).normalized()
+
+# handle: flat, thin, running away from the point of the blade
+h_end = c_tip + c_dir*0.092
+# handle: a flat grip, not a rod - a scalpel handle is a blade-shaped bar
+h_mid = (c_tip + c_dir*0.030 + h_end) / 2
+hdl = box("scalpel__handle", h_mid, (0.011, 0.006, 0.075), PROBE, bevel=0.002)
+hdl.rotation_mode = 'QUATERNION'; hdl.rotation_quaternion = c_dir.to_track_quat('Z','Y')
+
+# blade: triangular prism, apex at the skin, widening back into the handle
+import bmesh as _bm
+me = bpy.data.meshes.new("scalpel_blade")
+bm = _bm.new()
+side = c_dir.cross(Vector((0, 0, 1)))
+if side.length < 1e-6:
+    side = Vector((1, 0, 0))
+side.normalize()
+up = side.cross(c_dir).normalized()
+L, W, T = 0.030, 0.0055, 0.0009
+apex = c_tip
+base = c_tip + c_dir*L
+v = [bm.verts.new(apex + up*T), bm.verts.new(apex - up*T),
+     bm.verts.new(base + side*W + up*T), bm.verts.new(base + side*W - up*T),
+     bm.verts.new(base - side*W + up*T), bm.verts.new(base - side*W - up*T)]
+bm.faces.new((v[0], v[2], v[3], v[1]))
+bm.faces.new((v[0], v[1], v[5], v[4]))
+bm.faces.new((v[0], v[4], v[2]))
+bm.faces.new((v[1], v[3], v[5]))
+bm.faces.new((v[2], v[4], v[5], v[3]))
+bm.to_mesh(me); bm.free()
+blade = bpy.data.objects.new("scalpel__blade", me)
+bpy.context.scene.collection.objects.link(blade)
+blade.data.materials.append(METAL)
+print("SCALPEL blade at", tuple(round(c,3) for c in c_tip))
 
 # ------------------------------------------------------------------- export
 # The page assigns its own materials per role (app_scene.js), so the source textures would

@@ -30,7 +30,7 @@
 
     {t:"The needle goes in",
      n:"A small nick is made in the skin. Watching the screen, the doctor guides the needle in under the probe and into the lump.",
-     a:{form:1, xray:0.4, lumpHi:0.8, probe:1, needle:1, passes:0, clip:0, dressing:0, scalpel:1, labels:1}},
+     a:{form:1, xray:0.4, lumpHi:0.8, probe:0, needle:1, passes:0, clip:0, dressing:0, scalpel:1, labels:1}},
 
     {t:"Taking the samples",
      n:"The device fires and takes a thin core of tissue with a click. This is repeated a few times, each one a quick click, until enough tissue has been collected.",
@@ -424,7 +424,9 @@
   /* ONE camera orientation for the whole page. Every step - wide shots and close-ups alike -
      is seen from below the chest, looking slightly up, at the same yaw. Only the distance
      changes with the step, so the anatomy never appears to twist between chapters. */
-  const FRONT_YAW=0.02, FRONT_PITCH=0.02;      /* square-on, the page's opening view */
+  /* "Frontal" here means from the head end looking down the body: the patient's face is
+     square to the reader, which is what tells them how the figure is lying. */
+  const FRONT_YAW=0.0, FRONT_PITCH=-0.45;
   const PROC_YAW=0.42,  PROC_PITCH=-Math.PI/4; /* 45 degrees from below for the needle */
   const STD_YAW=FRONT_YAW, STD_PITCH=FRONT_PITCH;
   let yaw=STD_YAW, pitch=STD_PITCH, autoRotate=false, manual=false;
