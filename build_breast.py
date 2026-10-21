@@ -148,10 +148,19 @@ sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 # lump in depth (z < lump.z), which is inside the body, not on the skin.
 # Entry ON the skin at the inferior margin of the breast - the base - so the needle is
 # superficial where it starts rather than already inside the gland.
-_ex, _ey = lump.x - 0.052, lump.y + 0.078
-_hit, _loc, _n, _i = body.ray_cast(Vector((_ex, _ey, 0.5)), Vector((0, 0, -1)))
-_skin_z = _loc.z if _hit else lump.z + 0.040
+# One entry for every instrument, on the INTACT inferior-lateral surface of the breast.
+# Ray-casting straight above the lump hits the cut-away cavity, so sample a small patch and
+# take the highest skin point: this is what kept the entry drifting onto the chest wall.
+_ex, _ey = lump.x - 0.030, lump.y - 0.030
+_zs = []
+for _dx in (-0.012, 0.0, 0.012):
+    for _dy in (-0.012, 0.0, 0.012):
+        _h, _l, _nn, _ii = body.ray_cast(Vector((_ex+_dx, _ey+_dy, 0.5)), Vector((0, 0, -1)))
+        if _h:
+            _zs.append(_l.z)
+_skin_z = max(_zs) if _zs else lump.z + 0.030
 entry  = Vector((_ex, _ey, _skin_z + 0.002))
+print("ENTRY on breast", tuple(round(c,3) for c in entry), "of", len(_zs), "rays")
 tip    = lump + (lump - entry).normalized() * 0.012   # past the centre, inside the far half of the lump
 d      = (tip - entry).normalized()
 
@@ -286,7 +295,7 @@ def _skin(x, y):
 # ------------------------------------------------ local anaesthetic syringe
 # The anaesthetic goes in AT the point where the biopsy needle will enter, so that is where
 # the syringe sits: needle tip on the skin at the entry point, barrel standing off from it.
-s_tip  = Vector((entry.x, entry.y, _skin(entry.x, entry.y) + 0.001))
+s_tip  = Vector((entry.x, entry.y, entry.z))   # exactly the biopsy entry point
 s_dir  = (lump - s_tip).normalized()
 needle_back = s_tip - s_dir*0.026
 barrel0 = needle_back - s_dir*0.004
@@ -301,9 +310,8 @@ print("SYRINGE tip", tuple(round(c,3) for c in s_tip))
 # ------------------------------------------------------------- scalpel
 # Two solids: a flat grip and a slim blade tapering to a point. Built from boxes because the
 # bmesh wedge rendered as stray triangles at phone scale.
-c_x, c_y = lump.x - 0.030, lump.y - 0.020
-c_tip = Vector((c_x, c_y, _skin(c_x, c_y) + 0.002))
-c_dir = (c_tip - Vector((c_x - 0.035, c_y - 0.045, c_tip.z + 0.050))).normalized()
+c_tip = Vector((entry.x, entry.y, entry.z))
+c_dir = (c_tip - Vector((entry.x - 0.035, entry.y - 0.045, c_tip.z + 0.050))).normalized()
 grip = box("scalpel__handle", c_tip + c_dir*0.055, (0.010, 0.006, 0.080), PROBE, bevel=0.0015)
 grip.rotation_mode = 'QUATERNION'; grip.rotation_quaternion = c_dir.to_track_quat('Z','Y')
 blade = box("scalpel__blade", c_tip + c_dir*0.016, (0.007, 0.0012, 0.032), METAL, bevel=0.0004)

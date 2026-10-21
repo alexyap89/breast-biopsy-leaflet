@@ -375,6 +375,7 @@
      the breast is cut open in the needle's own plane. See the section block in step(). */
   renderer.localClippingEnabled = true;
   const sectionPlane = new THREE.Plane(new THREE.Vector3(0,0,1), 0);
+  const _clipAt = new THREE.Vector3();
   const _secDir = new THREE.Vector3();
   /* Narrow lens: a 38-degree FOV at half a metre bends a 0.66 m torso so far that a
      straight-on view reads as looking down from above. 22 degrees plus distance is flatter. */
@@ -597,7 +598,7 @@
          biopsy from. `manual` still wins, so a reader who drags keeps their angle. */
       /* Steps 3-8 (index 2-7) are the procedure: they get the 45-degree view even before the
          needle is on screen, so the camera settles before anything happens. */
-      const procView = cur>=2 && cur<=7;
+      const procView = cur>=2 && cur<=6;   /* step 8 onwards returns to the frontal view */
       const tgtY = procView ? PROC_YAW   : FRONT_YAW;
       const tgtP = procView ? PROC_PITCH : FRONT_PITCH;
       /* The procedure view is rolled a quarter turn so the patient's head is on the LEFT and
@@ -676,7 +677,17 @@
     /* A little self-light on the shaft keeps it visible where it passes through glandular
        tissue, without turning it into a light sabre. */
     if(P.needleMats) P.needleMats.forEach(m=>{ m.emissiveIntensity=0.22*Math.max(A.needle, A.passes); m.needsUpdate=true; });
-    if(P.clip){ P.clip.visible = A.clip>0.03; P.clip.scale.setScalar(0.65+0.35*Math.min(1,A.clip)); }
+    if(P.clip){
+      /* The marker is deployed through the same tract as the device: it travels in from the
+         entry and comes to rest at the lump, instead of appearing at the lump from nowhere. */
+      P.clip.visible = A.clip > 0.03;
+      /* The clip's geometry is baked at the lump, so move it by the DELTA from there to a point
+         on the tract; setting an absolute position would offset it twice and fling it outside. */
+      const tract = ENTRY.distanceTo(LUMP_WORLD);
+      _clipAt.copy(ENTRY).addScaledVector(AXIS, tract * Math.min(1, A.clip));
+      P.clip.position.copy(_clipAt).sub(LUMP_WORLD);
+      P.clip.scale.setScalar(0.65+0.35*Math.min(1,A.clip));
+    }
 
     /* ---------- camera ---------------------------------------------------- */
     /* The frame is fitted to whatever that step shows: the body while the skin
@@ -698,7 +709,7 @@
       /* The section steps frame tight on the lesion: this is the shot that has to show the
          needle crossing its centre. */
       const sectionStep = cur>=4 && cur<=6;
-      const half = sectionStep ? 0.075 : (A.dressing>0.3 ? 0.10 : 0.20);   /* wide enough to show the needle's path, not just the lump */
+      const half = sectionStep ? 0.075 : 0.20;
       box.setFromCenterAndSize(focus, new THREE.Vector3(half*2, half*2, half*1.7));
     }
     else {
@@ -719,7 +730,7 @@
        arms and a head, and fitting a box around it always leaves the body small in frame. */
     const dTarget = close>0.3
       ? Math.max(minD, fitDist(box)*(1-0.2*A.lumpHi)*zoomMul*(1-0.25*proc))
-      : 2.15*zoomMul;
+      : 2.15*zoomMul;   /* the wide frontal frame, identical on steps 1 and 8-9 */
     dist+=(dTarget-dist)*Math.min(1,dt*3.0);
     box.getCenter(_lookT);
     /* Once the lump is the subject, aim at it rather than at the middle of the torso: the
