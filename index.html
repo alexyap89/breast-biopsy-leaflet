@@ -1108,6 +1108,23 @@ function buildThreeScene(THREE, root){
     clickTimers.push(setTimeout(boom, 1200));
   }
 
+  /* Orientation control. Which way the body reads is easy to get backwards - the head/feet
+     axis is not obvious on a formant-coloured model - so let the reader rotate the picture a
+     quarter turn at a time and show the value, rather than the page insisting on one answer. */
+  (function(){
+    const bar=document.querySelector('.stage-bar');
+    if(!bar) return;
+    const b=document.createElement('button');
+    b.className='ctrl'; b.id='btnView'; b.type='button';
+    b.textContent='\u21bb View 0\u00b0';
+    b.setAttribute('aria-label','Rotate the view a quarter turn');
+    b.onclick=()=>{
+      rollOffset=(rollOffset+Math.PI/2)%(Math.PI*2);
+      b.textContent='\u21bb View '+Math.round(rollOffset*180/Math.PI)+'\u00b0';
+    };
+    bar.appendChild(b);
+  })();
+
   if(btnSound){
     btnSound.onclick=()=>{
       audioOn=!audioOn;
@@ -1275,6 +1292,7 @@ function buildThreeScene(THREE, root){
   const PROC_PITCH = Math.asin(_planeN.y); /* 45 degrees from below for the needle */
   const STD_YAW=FRONT_YAW, STD_PITCH=FRONT_PITCH;
   let yaw=STD_YAW, pitch=STD_PITCH, roll=0, autoRotate=false, manual=false;
+  let rollOffset=0;   /* reader-set quarter turns, added to the automatic roll */
   const _bis=new THREE.Vector3();      /* reused each frame: no allocation in the render loop */
   let zoomMul=1.0, dist=0.9;
   let drag=false,lx=0,ly=0,pid=null,swX=0,swY=0;
@@ -1428,7 +1446,7 @@ function buildThreeScene(THREE, root){
       const tgtP = procView ? PROC_PITCH : FRONT_PITCH;
       /* The procedure view is rolled a quarter turn so the patient's head is on the LEFT and
          the base of the torso on the RIGHT - the way the section is laid out on a page. */
-      const tgtR = procView ? -Math.PI/2 : 0;
+      const tgtR = procView ? Math.PI/2 : 0;   /* head (-Y) to the LEFT, torso to the right */
       const k=Math.min(1,dt*1.6);
       yaw  +=(tgtY - yaw  )*k;
       pitch+=(tgtP - pitch)*k;
@@ -1571,7 +1589,7 @@ function buildThreeScene(THREE, root){
        seen square-on to the chest. */
     camera.up.set(0,1,0);
     camera.lookAt(look);
-    if(roll) camera.rotateZ(roll);      /* in-plane rotation: head left, torso right */
+    if(roll+rollOffset) camera.rotateZ(roll+rollOffset);   /* in-plane rotation */
 
     /* ---------- cross-section -------------------------------------------- */
     /* Steps 5-7 cut the breast through the lesion, perpendicular to the view, so the needle is
