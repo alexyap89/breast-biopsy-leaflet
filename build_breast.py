@@ -143,7 +143,10 @@ sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 # Inferior approach: the needle enters on the lower (inferior) aspect of the breast and
 # rises up into the lump, the way an ultrasound-guided core biopsy is actually done.
 # The probe stays over the lump and is kept clear of the shaft by the check below.
-entry  = lump + Vector((-0.012, -0.070, -0.045))
+# Enter on the INFERIOR surface of the breast - the lower curve, at skin level - and travel
+# up and back into the lump at roughly 45 degrees. The earlier attempt put the entry BELOW the
+# lump in depth (z < lump.z), which is inside the body, not on the skin.
+entry  = lump + Vector((-0.012, 0.048, 0.030))   # screen-below the lump (see note below)
 tip    = lump + (lump - entry).normalized() * 0.022   # crosses the lump and exits
 d      = (tip - entry).normalized()
 
@@ -231,6 +234,8 @@ print("PROBE size", tuple(round(pmax[i] - pmin[i], 3) for i in range(3)),
       "| bottom z", round(pmin.z, 4), "| skin z", round(skin_z, 4))
 print("NEEDLE entry", tuple(round(c, 3) for c in entry), "tip", tuple(round(c, 3) for c in tip))
 print("CLEARANCE", round(near, 4), "m | shaft samples inside probe:", inside)
+_ang = math.degrees(math.acos(max(-1, min(1, (lump - entry).normalized().dot(Vector((0, 1, 0)))))))
+print("NEEDLE approach angle from the skin plane:", round(90 - _ang, 1), "deg")
 
 _sh = bpy.data.objects.get("needle__shaft")
 if _sh:

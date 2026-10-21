@@ -410,14 +410,9 @@
   const SKIN_Y = ENTRY.y, SKIN_Z = ENTRY.z;
 
   /* --------------------------------------------------------- DOM labels --- */
-  const LABELS = [
-    {text:'The lump',    k:'k94', pos:LUMP_WORLD.clone(),
-                          shows:a=>a.lumpHi>.5},
-    {text:'Ultrasound probe', k:'k95', pos:ENTRY.clone().add(new THREE.Vector3(0.035,0.02,0.055)),
-                          shows:a=>a.probe>.5},
-    {text:'Needle',      k:'k96', pos:ENTRY.clone().add(new THREE.Vector3(-0.03,0,0.02)),
-                          shows:a=>a.needle>.45},
-  ];
+  /* No callouts over the model: every one of them covered the anatomy it was naming.
+     The legend beneath the stage does the labelling instead. */
+  const LABELS = [];
   const labelEls = LABELS.map(L=>{
     const d=document.createElement('div');
     d.className='scene-label'; d.textContent=L.text;
