@@ -473,7 +473,7 @@
      cut put the flank and buttock in frame and showed the breast edge-on. */
   /* Pure lateral azimuth - no pull toward the front - with the eye raised to about 45 degrees,
      so the breast is seen from the side and slightly above. */
-  _planeN.y = 0.72;
+  _planeN.y = -0.72;   /* look from the side and slightly BELOW */
   _planeN.normalize();
   const PROC_YAW = Math.atan2(_planeN.x, _planeN.z);
   const PROC_PITCH = Math.asin(_planeN.y); /* 45 degrees from below for the needle */
@@ -639,7 +639,7 @@
       /* The reader settled the orientation at 270 deg with the previous 90 deg auto-roll in
          place, i.e. a full turn: no automatic roll at all. The section camera's own azimuth is
          what puts the head on the left. */
-      const tgtR = 0;
+      const tgtR = procView ? -Math.PI/2 : 0;   /* head (+Y) at the top of the frame */
       const k=Math.min(1,dt*1.6);
       yaw  +=(tgtY - yaw  )*k;
       pitch+=(tgtP - pitch)*k;
@@ -750,7 +750,7 @@
       if(sectionStep && P.needle && P.needle.visible){
         box.setFromObject(P.needle);
         if(P.lesion) box.union(new THREE.Box3().setFromObject(P.lesion));
-        box.expandByScalar(0.012);
+        box.expandByScalar(0.045);   /* context: the breast and the body edge, not just the needle */
       }
       const half = sectionStep ? 0.062 : 0.20;
       box.setFromCenterAndSize(focus, new THREE.Vector3(half*2, half*2, half*1.7));
