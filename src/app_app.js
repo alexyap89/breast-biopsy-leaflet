@@ -471,9 +471,9 @@
   /* Oblique rather than a pure side-on section: pull the direction most of the way round to
      the front so the breast is seen at an angle, with a little elevation. A straight lateral
      cut put the flank and buttock in frame and showed the breast edge-on. */
-  _planeN.addScaledVector(new THREE.Vector3(0, 0, 1), 0.7);
+  _planeN.addScaledVector(new THREE.Vector3(0, 0, 1), 0.5);
   _planeN.normalize();
-  _planeN.y = 0.45;
+  _planeN.y = 0.12;   /* barely any elevation: a flat view of the breast */
   _planeN.normalize();
   const PROC_YAW = Math.atan2(_planeN.x, _planeN.z);
   const PROC_PITCH = Math.asin(_planeN.y); /* 45 degrees from below for the needle */
@@ -743,9 +743,15 @@
     const focus = A.dressing>0.3 ? ENTRY : LUMP_WORLD;
     const close = Math.max(A.lumpHi, A.dressing);
     if(close>0.3){
-      /* The section steps frame tight on the lesion: this is the shot that has to show the
-         needle crossing its centre. */
-      const sectionStep = cur>=2 && cur<=6;   /* steps 3-7 frame the breast, not the torso */
+      /* The section steps frame the WHOLE needle, not just the lesion: the point of these
+         shots is the trajectory - entry at the skin, the tract through the gland, the tip past
+         the lump centre. A box around the needle alone gives exactly that. */
+      const sectionStep = cur>=2 && cur<=6;
+      if(sectionStep && P.needle && P.needle.visible){
+        box.setFromObject(P.needle);
+        if(P.lesion) box.union(new THREE.Box3().setFromObject(P.lesion));
+        box.expandByScalar(0.012);
+      }
       const half = sectionStep ? 0.062 : 0.20;
       box.setFromCenterAndSize(focus, new THREE.Vector3(half*2, half*2, half*1.7));
     }
@@ -762,7 +768,7 @@
     if(P.dressing.visible) box.union(new THREE.Box3().setFromObject(P.dressing));
     /* The floor keeps the camera out of the body on wide steps; on the close-ups the box is
        already small, so a 0.62 m floor would undo the framing entirely. */
-    const minD = close>0.3 ? 0.20 : 0.62;
+    const minD = close>0.3 ? 0.14 : 0.62;
     /* The wide steps use a fixed distance rather than a fit of a nominal box: the torso has
        arms and a head, and fitting a box around it always leaves the body small in frame. */
     const dTarget = close>0.3
