@@ -39,9 +39,11 @@ function buildThreeScene(THREE, root){
       clearcoat: skin ? 0.18 : 0.0,
       clearcoatRoughness: 0.6,
       side: THREE.DoubleSide,
-      transparent: skin,
+      /* The lump is translucent so the needle is visible crossing it: an opaque sphere hides
+         exactly the thing the step is about. */
+      transparent: skin || role==='lesion',
       opacity: 1.0,
-      emissive: role==='lesion' ? 0xff5a3c : (role==='needle' ? 0x88aacc : 0x000000),
+      emissive: role==='lesion' ? 0xff7a4a : (role==='needle' ? 0xaaccff : 0x000000),
       emissiveIntensity: 0.0
     });
     if(skin) skinMats.push(m);

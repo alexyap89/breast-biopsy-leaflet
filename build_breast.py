@@ -134,11 +134,11 @@ sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 # The needle enters in line with the probe's long axis, at its foot end - the way a
 # freehand US-guided biopsy is actually done. Running it across the probe is what made the
 # shaft collide with the handle no matter where the probe was put.
-entry  = Vector((lump.x - 0.070, lump.y - 0.010, lump.z + 0.040))
+entry  = Vector((lump.x, lump.y - 0.090, lump.z + 0.030))
 tip    = lump + (lump - entry).normalized() * 0.022   # crosses the lump and exits
 d      = (tip - entry).normalized()
 
-cyl("needle__shaft", entry - d*0.050, tip, 0.0018, METAL)
+cyl("needle__shaft", entry - d*0.050, tip, 0.0022, METAL)
 cyl("needle__guide", entry - d*0.018, entry + d*0.008, 0.0030, PROBE, 20)
 cyl("needle__hub",   entry - d*0.050, entry - d*0.070, 0.0055, WHITE, 20)
 tb = box("needle__trough", tip - d*0.010, (0.0016, 0.0022, 0.014), METAL, bevel=0.0004)
@@ -153,10 +153,12 @@ tb.rotation_mode = 'QUATERNION'; tb.rotation_quaternion = d.to_track_quat('Z','Y
 # Geometry follows the FNAC leaflet's probe, which reads correctly: a flat rectangular
 # footprint ON the skin, a tapered body behind it, a cylindrical handle angled up and back,
 # and a cable. The skin normal here is +Z and the long axis runs head-to-foot (Y).
-px, py = lump.x - 0.006, lump.y + 0.022
+px, py = lump.x, lump.y
 zs = []
-for dx in (-0.011, 0.0, 0.011):
-    for dy in (-0.024, 0.0, 0.024):
+# Sample a WIDE neighbourhood: the lesion sits under the cut-away cavity, so casting only
+# beneath the footprint drops the probe into the hole. The rim is what it should rest on.
+for dx in (-0.045, -0.022, 0.0, 0.022, 0.045):
+    for dy in (-0.045, -0.022, 0.0, 0.022, 0.045):
         hit, loc, nor, idx = body.ray_cast(Vector((px + dx, py + dy, 0.5)), Vector((0, 0, -1)))
         if hit:
             zs.append(loc.z)
@@ -173,11 +175,11 @@ probe_parts = [
         (FOOT_WID * 1.15, FOOT_LEN * 0.42, 0.028), PROBE, bevel=0.0035),
 ]
 # handle: 28 deg off the skin normal, leaning back toward the head end
-hd_start = Vector((px, py + 0.006, base + 0.030))
-hd_dir = Vector((0.0, math.sin(math.radians(28)), math.cos(math.radians(28))))
+hd_start = Vector((px + 0.006, py, base + 0.030))
+hd_dir = Vector((math.sin(math.radians(28)), 0.0, math.cos(math.radians(28))))
 hd_end = hd_start + hd_dir * 0.085
 probe_parts.append(cyl("probe__handle", hd_start, hd_end, 0.013, PROBE, 18))
-cb_dir = Vector((0.0, math.sin(math.radians(42)), math.cos(math.radians(42))))
+cb_dir = Vector((math.sin(math.radians(42)), 0.0, math.cos(math.radians(42))))
 probe_parts.append(cyl("probe__cable", hd_end, hd_end + cb_dir * 0.070, 0.006, PROBE, 12))
 
 # Sit the assembly flush with the sloping breast rather than hovering at one edge.
@@ -191,15 +193,10 @@ R = (Matrix.Translation(pivot) @ Matrix.Rotation(tilt, 4, 'X') @ Matrix.Translat
 for o in probe_parts:
     o.matrix_world = R @ o.matrix_world
 
-# Turn the assembly a quarter turn about the skin normal: its long axis then runs along X,
-# the same axis the needle travels, so probe, lesion and needle share one imaging plane -
-# which is how a freehand ultrasound-guided biopsy is actually set up.
-Rz = (Matrix.Translation(Vector((px, py, base))) @ Matrix.Rotation(math.radians(90), 4, 'Z')
-      @ Matrix.Translation(-Vector((px, py, base))))
-for o in probe_parts:
-    o.matrix_world = Rz @ o.matrix_world
+# Long axis stays along Y: the craniocaudal axis, which is how a breast lesion is scanned,
+# and the plane the needle runs in. The needle passes beneath the footprint, in line with it.
 print("PROBE footprint", FOOT_LEN, "x", FOOT_WID, "m | tilt", round(math.degrees(tilt), 1),
-      "deg | long axis along X, in line with the needle")
+      "deg | long axis craniocaudal (Y), over the lesion, needle in line beneath")
 
 # ------------------------------------------------------------- clearance check
 # True separation between the needle shaft and the whole probe, not just an x-gap: sample the
@@ -226,9 +223,9 @@ print("PROBE size", tuple(round(pmax[i] - pmin[i], 3) for i in range(3)),
 print("NEEDLE entry", tuple(round(c, 3) for c in entry), "tip", tuple(round(c, 3) for c in tip))
 print("CLEARANCE", round(near, 4), "m | shaft samples inside probe:", inside)
 
-bpy.ops.mesh.primitive_torus_add(location=lump + Vector((0,0,0.004)),
-                                 major_radius=0.0022, minor_radius=0.0005,
-                                 major_segments=24, minor_segments=8)
+bpy.ops.mesh.primitive_torus_add(location=lump,
+                                 major_radius=0.0038, minor_radius=0.0008,
+                                 major_segments=28, minor_segments=10)
 c = bpy.context.active_object; c.name = "clip__marker"; c.data.materials.append(CLIPM)
 c.rotation_euler = Euler((math.radians(78), 0, math.radians(20)), 'XYZ')
 bpy.ops.object.shade_smooth()
@@ -263,43 +260,32 @@ cyl("syringe__finger", barrel1, barrel1 - s_dir*0.003, 0.0075, PROBE, 16)
 print("SYRINGE tip", tuple(round(c,3) for c in s_tip))
 
 # ------------------------------------------------------------- scalpel
-# A scalpel is a flat handle with a slender blade set at an angle to it, not a stick: the
-# blade is a wedge that tapers to a cutting edge, mounted off the handle's end.
-c_tip = Vector((entry.x - 0.004, entry.y - 0.006, _skin(entry.x, entry.y) + 0.0015))
-c_dir = (c_tip - Vector((c_tip.x - 0.045, c_tip.y - 0.055, c_tip.z + 0.060))).normalized()
+# Two solids: a flat grip and a slim blade tapering to a point. Built from boxes because the
+# bmesh wedge rendered as stray triangles at phone scale.
+c_x, c_y = lump.x - 0.030, lump.y - 0.020
+c_tip = Vector((c_x, c_y, _skin(c_x, c_y) + 0.002))
+c_dir = (c_tip - Vector((c_x - 0.035, c_y - 0.045, c_tip.z + 0.050))).normalized()
+grip = box("scalpel__handle", c_tip + c_dir*0.055, (0.010, 0.006, 0.080), PROBE, bevel=0.0015)
+grip.rotation_mode = 'QUATERNION'; grip.rotation_quaternion = c_dir.to_track_quat('Z','Y')
+blade = box("scalpel__blade", c_tip + c_dir*0.016, (0.007, 0.0012, 0.032), METAL, bevel=0.0004)
+blade.rotation_mode = 'QUATERNION'; blade.rotation_quaternion = c_dir.to_track_quat('Z','Y')
+print("SCALPEL at", tuple(round(c,3) for c in c_tip))
 
-# handle: flat, thin, running away from the point of the blade
-h_end = c_tip + c_dir*0.092
-# handle: a flat grip, not a rod - a scalpel handle is a blade-shaped bar
-h_mid = (c_tip + c_dir*0.030 + h_end) / 2
-hdl = box("scalpel__handle", h_mid, (0.011, 0.006, 0.075), PROBE, bevel=0.002)
-hdl.rotation_mode = 'QUATERNION'; hdl.rotation_quaternion = c_dir.to_track_quat('Z','Y')
+def _centre_of(names):
+    pts = []
+    for n in names:
+        o = bpy.data.objects.get(n)
+        if o:
+            pts += [o.matrix_world @ Vector(c) for c in o.bound_box]
+    lo = Vector((min(v[i] for v in pts) for i in range(3)))
+    hi = Vector((max(v[i] for v in pts) for i in range(3)))
+    return (lo + hi) / 2
 
-# blade: triangular prism, apex at the skin, widening back into the handle
-import bmesh as _bm
-me = bpy.data.meshes.new("scalpel_blade")
-bm = _bm.new()
-side = c_dir.cross(Vector((0, 0, 1)))
-if side.length < 1e-6:
-    side = Vector((1, 0, 0))
-side.normalize()
-up = side.cross(c_dir).normalized()
-L, W, T = 0.030, 0.0055, 0.0009
-apex = c_tip
-base = c_tip + c_dir*L
-v = [bm.verts.new(apex + up*T), bm.verts.new(apex - up*T),
-     bm.verts.new(base + side*W + up*T), bm.verts.new(base + side*W - up*T),
-     bm.verts.new(base - side*W + up*T), bm.verts.new(base - side*W - up*T)]
-bm.faces.new((v[0], v[2], v[3], v[1]))
-bm.faces.new((v[0], v[1], v[5], v[4]))
-bm.faces.new((v[0], v[4], v[2]))
-bm.faces.new((v[1], v[3], v[5]))
-bm.faces.new((v[2], v[4], v[5], v[3]))
-bm.to_mesh(me); bm.free()
-blade = bpy.data.objects.new("scalpel__blade", me)
-bpy.context.scene.collection.objects.link(blade)
-blade.data.materials.append(METAL)
-print("SCALPEL blade at", tuple(round(c,3) for c in c_tip))
+print("LUMP     ", tuple(round(c,3) for c in lump))
+print("PROBE mid", tuple(round(c,3) for c in _centre_of(
+    ('probe__body','probe__footprint','probe__handle','probe__cable'))))
+print("CLIP mid ", tuple(round(c,3) for c in _centre_of(('clip__marker',))))
+print("FOOTPRINT mid", tuple(round(c,3) for c in _centre_of(('probe__footprint',))))
 
 # ------------------------------------------------------------------- export
 # The page assigns its own materials per role (app_scene.js), so the source textures would

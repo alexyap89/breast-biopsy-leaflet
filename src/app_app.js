@@ -28,17 +28,17 @@
      n:"Local anaesthetic is injected into the skin and deeper into the breast. It stings for a few seconds, and then the area goes numb. You stay awake the whole time.",
      a:{form:1, xray:0.45, lumpHi:0.6, probe:1, needle:0, passes:0, clip:0, dressing:0, syringe:1, labels:1}},
 
-    {t:"The needle goes in",
-     n:"A small nick is made in the skin. Watching the screen, the doctor guides the needle in under the probe and into the lump.",
-     a:{form:1, xray:0.4, lumpHi:0.8, probe:0, needle:1, passes:0, clip:0, dressing:0, scalpel:1, labels:1}},
+    {t:"A small nick in the skin",
+     n:"The anaesthetic has taken effect and the skin is numb. A tiny nick is made in the skin at the spot the needle will enter, so the biopsy needle passes through cleanly.",
+     a:{form:1, xray:0.4, lumpHi:0.8, probe:1, needle:0, passes:0, clip:0, dressing:0, scalpel:1, labels:1}},
 
-    {t:"Taking the samples",
-     n:"The device fires and takes a thin core of tissue with a click. This is repeated a few times, each one a quick click, until enough tissue has been collected.",
+    {t:"The biopsy needle goes in",
+     n:"The biopsy needle is introduced under ultrasound guidance and guided into the lump. The device fires twice, taking a thin core of tissue with each click.",
      a:{form:1, xray:0.35, lumpHi:1, probe:1, needle:1, passes:1, clip:0, dressing:0, labels:1}},
 
     {t:"The marker clip",
      n:"A very small clip is left at the spot, so the area can be found again later. You cannot feel it, and it is safe to have an MRI scan with it in place.",
-     a:{form:1, xray:0.35, lumpHi:1, probe:0.85, needle:0.5, passes:0, clip:1, dressing:0, labels:1}},
+     a:{form:1, xray:0.35, lumpHi:1, probe:0, needle:0.35, passes:0, clip:1, dressing:0, labels:1}},
 
     {t:"Pressure, then a dressing",
      n:"Firm pressure is held over the spot to stop any bleeding, then a dressing is applied. It stays on, and stays dry, for 48 hours.",
@@ -627,7 +627,9 @@
        where the nodule is meant to be seen the skin is translucent enough to show
        it, and the emissive is what makes it read through that skin. */
     if(P.lesion) P.lesion.traverse(o=>{ if(!o.isMesh) return; const m=o.material;
-      m.emissiveIntensity=0.25+1.35*A.lumpHi; m.needsUpdate=true; });
+      m.emissiveIntensity=0.2+0.7*A.lumpHi;
+      m.opacity=(typeof cur!=='undefined' && cur===6) ? 0.12 : 0.55;
+      m.depthWrite=false; m.needsUpdate=true; });
     if(P.lumpPivot) P.lumpPivot.scale.setScalar(1+0.15*A.lumpHi);
 
     /* ---------- probe and needle ----------------------------------------- */
