@@ -151,7 +151,7 @@ sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 # One entry for every instrument, on the INTACT inferior-lateral surface of the breast.
 # Ray-casting straight above the lump hits the cut-away cavity, so sample a small patch and
 # take the highest skin point: this is what kept the entry drifting onto the chest wall.
-_ex, _ey = lump.x - 0.030, lump.y - 0.030
+_ex, _ey = lump.x - 0.030, lump.y + 0.030
 _zs = []
 for _dx in (-0.012, 0.0, 0.012):
     for _dy in (-0.012, 0.0, 0.012):
