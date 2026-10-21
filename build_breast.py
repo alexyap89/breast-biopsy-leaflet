@@ -147,12 +147,12 @@ sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
 # up and back into the lump at roughly 45 degrees. The earlier attempt put the entry BELOW the
 # lump in depth (z < lump.z), which is inside the body, not on the skin.
 entry  = lump + Vector((-0.012, 0.048, 0.030))   # screen-below the lump (see note below)
-tip    = lump + (lump - entry).normalized() * 0.022   # crosses the lump and exits
+tip    = lump + (lump - entry).normalized() * 0.009   # just through the lump, not across the whole breast
 d      = (tip - entry).normalized()
 
-cyl("needle__shaft", entry - d*0.050, tip, 0.0022, METAL)
+cyl("needle__shaft", entry - d*0.028, tip, 0.0022, METAL)
 cyl("needle__guide", entry - d*0.018, entry + d*0.008, 0.0030, PROBE, 20)
-cyl("needle__hub",   entry - d*0.050, entry - d*0.070, 0.0055, WHITE, 20)
+cyl("needle__hub",   entry - d*0.028, entry - d*0.046, 0.0050, WHITE, 20)
 tb = box("needle__trough", tip - d*0.010, (0.0016, 0.0022, 0.014), METAL, bevel=0.0004)
 tb.rotation_mode = 'QUATERNION'; tb.rotation_quaternion = d.to_track_quat('Z','Y')
 

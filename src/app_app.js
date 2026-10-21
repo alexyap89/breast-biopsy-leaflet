@@ -531,7 +531,7 @@
      travel from the nodule out to the skin is about 0.077, so OUT is 0.078 - just clear of it.
      The phase is anchored to the step's own start rather than to the page clock, so step 7
      always opens on the strokes with the needle in, never on a stray frame with it outside. */
-  const PASS_OUT=0.078, PASS_STROKE=0.034, PASSES=2, PASS_MS=6000, PASS_STROKES=3;
+  const PASS_OUT=0.038, PASS_STROKE=0.018, PASSES=2, PASS_MS=6000, PASS_STROKES=3;
   let lastCur=-1, stepT0=0;
   function passSlide(now){
     const amp=Math.min(1,Math.max(0,A.passes))*Math.min(1,Math.max(0,A.needle));
