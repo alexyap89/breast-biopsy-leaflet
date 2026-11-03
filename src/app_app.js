@@ -266,18 +266,22 @@
       const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
       clickCtx=clickCtx||new AC();
       const c=clickCtx, t=c.currentTime;
-      const n=Math.max(1,Math.floor(c.sampleRate*0.09));
+      const n=Math.max(1,Math.floor(c.sampleRate*0.12));
       const buf=c.createBuffer(1,n,c.sampleRate), d=buf.getChannelData(0);
-      for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.006));
+      for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.012));
       const src=c.createBufferSource(); src.buffer=buf;
       const g=c.createGain(); g.gain.setValueAtTime(1.0,t);
-      g.gain.exponentialRampToValueAtTime(0.001,t+0.09);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
       src.connect(g); g.connect(c.destination); src.start(t);
+      /* A short high transient at the attack: it is what reads as the "click". */
+      const k=c.createOscillator(); k.type='sine'; k.frequency.setValueAtTime(2800,t);
+      const kg=c.createGain(); kg.gain.setValueAtTime(0.6,t); kg.gain.exponentialRampToValueAtTime(0.001,t+0.008);
+      k.connect(kg); kg.connect(c.destination); k.start(t); k.stop(t+0.01);
       const o=c.createOscillator(); o.type='sine';
-      o.frequency.setValueAtTime(180,t); o.frequency.exponentialRampToValueAtTime(48,t+0.09);
-      const og=c.createGain(); og.gain.setValueAtTime(0.55,t);
-      og.gain.exponentialRampToValueAtTime(0.001,t+0.12);
-      o.connect(og); og.connect(c.destination); o.start(t); o.stop(t+0.13);
+      o.frequency.setValueAtTime(180,t); o.frequency.exponentialRampToValueAtTime(52,t+0.14);
+      const og=c.createGain(); og.gain.setValueAtTime(1.0,t);
+      og.gain.exponentialRampToValueAtTime(0.001,t+0.16);
+      o.connect(og); og.connect(c.destination); o.start(t); o.stop(t+0.17);
     }catch(_){}
   }
   function clickSequence(on){
@@ -448,36 +452,14 @@
   /* No spin by default - the user asked for the model to stop turning on its own; the rotate
      toggle still starts it if they want it. `manual` records that the viewer has moved the camera
      themselves, which is what stops the per-step framing below from pulling it back to a default. */
-  /* ONE camera orientation for the whole page. Every step - wide shots and close-ups alike -
-     is seen from below the chest, looking slightly up, at the same yaw. Only the distance
-     changes with the step, so the anatomy never appears to twist between chapters. */
-  /* "Frontal" means square-on to the chest: the camera sits in front of the patient and
-     looks straight at both breasts, which is how the paper leaflet is laid out. */
-  /* The chest faces -Z after the model is laid supine, so the camera sits on that side. */
-  const CHEST_SIDE=Math.PI;
-  const FRONT_YAW=CHEST_SIDE, FRONT_PITCH=0.0;
-  /* The procedure view looks PERPENDICULAR to the plane that holds the needle and the skin
-     normal, so the needle is seen in profile crossing the lump - the view a radiologist has
-     on the ultrasound screen, and the one the reference section uses. Derived from AXIS so it
-     follows any change to the needle path. */
-  const _planeN = new THREE.Vector3().crossVectors(AXIS, new THREE.Vector3(0,0,1));
-  if(_planeN.lengthSq() < 1e-6) _planeN.set(1,0,0);
-  _planeN.normalize();
-  /* Stay on the FRONT-lateral side of the same breast. The perpendicular to the needle plane
-     has two directions; taking the one facing away from the chest (positive Z) keeps the
-     camera on the side the reader is already looking from, instead of swinging round to the
-     opposite breast. */
-  if(_planeN.z < 0) _planeN.multiplyScalar(-1);
-  /* Oblique rather than a pure side-on section: pull the direction most of the way round to
-     the front so the breast is seen at an angle, with a little elevation. A straight lateral
-     cut put the flank and buttock in frame and showed the breast edge-on. */
-  /* Pure lateral azimuth - no pull toward the front - with the eye raised to about 45 degrees,
-     so the breast is seen from the side and slightly above. */
-  _planeN.y = -0.72;   /* look from the side and slightly BELOW */
-  _planeN.normalize();
-  const PROC_YAW = Math.atan2(_planeN.x, _planeN.z);
-  const PROC_PITCH = Math.asin(_planeN.y); /* 45 degrees from below for the needle */
-  const STD_YAW=FRONT_YAW, STD_PITCH=FRONT_PITCH;
+  /* ONE camera orientation for the whole page - standardised, the user's call: every step,
+     wide shots and close-ups alike, is seen from the same angle. Only the distance changes
+     with the step, so the anatomy never appears to twist or jump between chapters. */
+  /* The chest faces -Z after the model is laid supine, so the camera sits on that side. The
+     angle is a front three-quarter - about 35 degrees round toward the biopsy breast (+X) and a
+     little below, looking up: the entry point and the dressing sit on the underside of the breast,
+     so a view from above hides exactly what the procedure steps are about. */
+  const STD_YAW=Math.PI-0.62, STD_PITCH=-0.20;
   let yaw=STD_YAW, pitch=STD_PITCH, roll=0, autoRotate=false, manual=false;
   let rollOffset=0;   /* reader-set quarter turns, added to the automatic roll */
   const _bis=new THREE.Vector3();      /* reused each frame: no allocation in the render loop */
@@ -610,7 +592,7 @@
        needle in and the strokes under way - see passSlide. */
     if(lastCur!==cur){ lastCur=cur; stepT0=now; }
     /* Which step is "the procedure"? Steps 5-8: the ones with the probe or the needle in play.
-       Used twice below - for the viewing angle, and to pull the camera in. */
+     Used below to pull the camera in for the needle steps. */
     /* Only the needle steps earn the close-up. The probe alone is on screen from step 2,
        and factoring it in pulled the camera inside the torso, where nothing draws. */
     const proc=Math.max(TGT.needle, TGT.passes);
@@ -619,27 +601,11 @@
        while the neck turns away from you. `manual` is set by any drag, wheel or key press, so a view
        the viewer has taken hold of is never pulled back to a default. */
     /* No idle spin: a view that drifts on its own cannot be standardised. */
-    /* The procedure steps are framed FOR the procedure: the camera eases to the bisector of the
-       ultrasound's plane and the needle, so it looks from between them - the one direction where
-       the probe's face on the skin and the needle going in under it are both visible. The
-       ultrasound's plane is the skin surface, whose outward direction is +Z here, and the needle's
-       axis points inward, so the bisector is +Z minus AXIS. wantYaw/wantPitch are that direction
-       in the same spherical convention the camera placement below already uses. */
+    /* The whole page uses the one standardised view (STD_YAW/STD_PITCH, no roll, head up):
+       no per-step switching, so the camera never jumps between chapters. `manual` still wins,
+       so a reader who drags keeps their angle. */
     if(!manual){
-      /* One rule for the whole page: square-on while the page is explaining, then a tilt to
-         45 degrees below the chest as the needle goes in - the angle you would actually see a
-         biopsy from. `manual` still wins, so a reader who drags keeps their angle. */
-      /* Steps 3-8 (index 2-7) are the procedure: they get the 45-degree view even before the
-         needle is on screen, so the camera settles before anything happens. */
-      const procView = cur>=2 && cur<=6;   /* step 8 onwards returns to the frontal view */
-      const tgtY = procView ? PROC_YAW   : FRONT_YAW;
-      const tgtP = procView ? PROC_PITCH : FRONT_PITCH;
-      /* The procedure view is rolled a quarter turn so the patient's head is on the LEFT and
-         the base of the torso on the RIGHT - the way the section is laid out on a page. */
-      /* The reader settled the orientation at 270 deg with the previous 90 deg auto-roll in
-         place, i.e. a full turn: no automatic roll at all. The section camera's own azimuth is
-         what puts the head on the left. */
-      const tgtR = procView ? -Math.PI/2 : 0;   /* head (+Y) at the top of the frame */
+      const tgtY=STD_YAW, tgtP=STD_PITCH, tgtR=0;
       const k=Math.min(1,dt*1.6);
       yaw  +=(tgtY - yaw  )*k;
       pitch+=(tgtP - pitch)*k;
@@ -750,7 +716,7 @@
       if(sectionStep && P.needle && P.needle.visible){
         box.setFromObject(P.needle);
         if(P.lesion) box.union(new THREE.Box3().setFromObject(P.lesion));
-        box.expandByScalar(0.045);   /* context: the breast and the body edge, not just the needle */
+        box.expandByScalar(0.075);   /* context: the breast and the body edge, not just the needle */
       }
       const half = sectionStep ? 0.062 : 0.20;
       box.setFromCenterAndSize(focus, new THREE.Vector3(half*2, half*2, half*1.7));
@@ -772,7 +738,7 @@
     /* The wide steps use a fixed distance rather than a fit of a nominal box: the torso has
        arms and a head, and fitting a box around it always leaves the body small in frame. */
     const dTarget = close>0.3
-      ? Math.max(minD, fitDist(box)*(1-0.2*A.lumpHi)*zoomMul*(1-0.25*proc))
+      ? Math.max(minD, fitDist(box)*(1-0.12*A.lumpHi)*zoomMul)
       : 2.15*zoomMul;   /* the wide frontal frame, identical on steps 1 and 8-9 */
     dist+=(dTarget-dist)*Math.min(1,dt*3.0);
     box.getCenter(_lookT);
@@ -794,7 +760,9 @@
     /* ---------- cross-section -------------------------------------------- */
     /* Steps 5-7 cut the breast through the lesion, perpendicular to the view, so the needle is
        seen crossing the centre of the lump in section instead of buried under skin. */
-    const sectionOn = cur>=4 && cur<=6;
+    /* The section cut is off: on a whole, translucent breast it read as a dark hole punched
+       through the skin. The needle steps show the tract through the skin fade alone. */
+    const sectionOn = false;
     const anat = [P.skinMats, P.glandMats, P.ductMats, P.muscleMats];
     if(sectionOn){
       _secDir.copy(look).sub(camera.position).normalize();

@@ -1,374 +1,589 @@
+#!/usr/bin/env python3
 """Build the breast-biopsy scene GLB.
 
-Source: "Human Female Breast Anatomy" by Anatomy by Doctor Jana (Sketchfab), CC-BY-4.0.
-It ships as a torso with one breast cut away to show the lobules, ducts and pectoral
-muscle - which is exactly the view the opening steps need.
+A pure trimesh + numpy port of the former Blender (bpy) build, so the pipeline runs with no
+Blender install.  The whole-torso source asset is a single GLB whose five anatomy meshes are
+named Body_Julie2_0 / Glands_Extract4_1_0 / Ducts_Ducts5_0 / Ducts_Ducts5_1 /
+Muscles_Extract1_0, already in a Y-up standing pose with the chest facing +Z.
 
-The import arrives under Sketchfab_model/Breast.fbx/RootNode with a ~880-unit parent
-offset, so every mesh is baked into world space first and unparented. One uniform matrix
-then scales the lot to metres, lays the patient supine (chest toward +Z) and centres the
-chest on the origin.
+Dependencies: trimesh (>=5), numpy and shapely (slice_plane needs it to rebuild the whole torso).
+Install into an isolated venv; do NOT install into the system python (PEP 668):
 
-Props are authored here: the lump, an ultrasound probe, a spring-loaded core needle with
-its trough, the marker clip and the dressing. Every object is named `role__part`; the
-page's loader takes the text before `__` as the role.
+    python3 -m venv /Users/alexyap/.venvs/glbtools
+    /Users/alexyap/.venvs/glbtools/bin/python -m pip install "trimesh[all]" numpy shapely
 
-    blender -b -P build_breast.py -- model/breast_scene.glb
+Pipeline
+--------
+1. Load the whole torso, apply each mesh's world transform (the GLB node hierarchy), then
+   strip every texture/material image so the page can assign its own flat colours per role.
+2. Scale to a 0.46 m shoulder width and rotate +90 deg about X so a standing patient becomes
+   supine with the chest facing +Z.  The GLB itself stays Y-up; the app applies its own -90 deg
+   X rotation when laying the patient down.
+3. Centre the whole body on the origin using the body's bounding box (the gland is the anchor
+   of interest and ends up near the reference position).
+4. The source body is a cutaway: its -X half is complete, the +X chest is opened.  Rebuild the
+   body as the intact -X half plus its mirror (a symmetric, watertight torso with both breasts),
+   then lift a smooth breast volume over each side, because the mirrored asset's own mound is
+   nearly flat.  Decimate each mesh with the historical ratios via
+   trimesh.simplify_quadric_decimation.
+5. Keep the internal layers at the reference positions and clamp them inside the skin so no
+   cutaway plate shows through the closed breast
+   (verified to 4 decimals against the committed GLB), so no per-layer offset is applied.  The
+   ducts and muscle are cutaway PLATES that read as red streaks and a flat wall once the skin is
+   closed, so the build ships the body, the glandular lobules and the instruments only.
+6. Rebuild every instrument as a trimesh primitive (cylinder / sphere / box / manual torus),
+   placed with the same math the Blender build used: one shared entry point on the skin, the
+   needle rising up into the lump, the probe parallel to the needle, the clip perpendicular to
+   the needle axis, plus syringe, scalpel and a conforming dressing pad.
+7. Export as GLB, then strip materials/textures/images + primitive material indices so the file
+   has 0 materials like the reference (the app assigns colours by role prefix).
+
+The diagnostic prints at the end reproduce the reference values used to sanity-check the rebuild.
 """
-import bpy, bmesh, sys, os, math
-from mathutils import Vector, Matrix, Euler
+import json
+import os
+import struct
+import sys
 
-# The FBX is the same topology as the public GLB but ships the original albedo maps, so the
-# skin and gland can be textured instead of flat-coloured. Geometry is decimated as before.
-SRC = "/tmp/breasthd/Breast/Breast.fbx"
-OUT = sys.argv[sys.argv.index('--') + 1] if '--' in sys.argv else "model/breast_scene.glb"
-os.makedirs(os.path.dirname(OUT) or '.', exist_ok=True)
+import numpy as np
+import trimesh
+from trimesh import transformations as T
 
-CHEST_W       = 0.46      # metres across the shoulders
-LESION_DEPTH  = 0.022     # under the skin surface
-LESION_RADIUS = 0.011
+SRC = "/Users/alexyap/Downloads/human_female_breast_anatomy.glb"
+OUT = "model/breast_scene.glb"
 
-bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.fbx(filepath=SRC)
+CHEST_W = 0.46          # metres across the shoulders (reference shoulder width)
+LESION_RADIUS = 0.011   # metres
 
-# Downscale every packed image to 512 px: the originals are 1-2 MB each and the page shows
-# the model at a few hundred pixels wide on a phone.
-for img in bpy.data.images:
-    if img.size[0] > 512 or img.size[1] > 512:
-        img.scale(512, 512)
-        print("texture scaled:", img.name, tuple(img.size))
+# Reference ratios from the Blender build: keep the same decimation per role.
+RATIO = {"duct": 0.18, "body": 0.82, "muscle": 0.7, "gland": 0.9}
 
-# ---------------------------------------------------------------- bake + name
-meshes = [o for o in bpy.data.objects if o.type == 'MESH']
-body = next(o for o in meshes if 'Body' in o.name)
-ROLE_OF = {'Body': 'body', 'Glands': 'gland', 'Ducts': 'duct', 'Muscles': 'muscle'}
+# Standing -> supine: rotate +90 deg about X so the chest faces +Z.  Verified against the
+# reference GLB: body Y-range 0.2128, Z-range 0.4657, gland centroid ~ (0.075, 0.073, -0.016).
+R_SUPINE = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]], dtype=float)
 
-for o in meshes:
-    o.parent = None
-    o.data.transform(o.matrix_world)          # bake the Sketchfab offset into the mesh
-    o.matrix_world = Matrix.Identity(4)
-    for k, role in ROLE_OF.items():
-        if o.name.startswith(k):
-            o.name = f"{role}__{o.name.split('_')[0].lower()}"
-            break
-bpy.context.view_layer.update()
 
-# ------------------------------------------------- metres, supine, centred
-bb = [body.matrix_world @ Vector(c) for c in body.bound_box]
-width = max(v.x for v in bb) - min(v.x for v in bb)
-scale = CHEST_W / max(width, 1e-6)
+# --------------------------------------------------------------------- helpers
+def align_z_to(d):
+    """Rotation matrix that maps +Z onto the unit vector d (for aligning a cylinder's axis)."""
+    z = np.array([0.0, 0.0, 1.0])
+    d = d / np.linalg.norm(d)
+    if abs(d[2] - 1.0) < 1e-9:
+        return np.eye(3)
+    if abs(d[2] + 1.0) < 1e-9:
+        # 180 deg about any in-plane axis; use X
+        return np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]], dtype=float)
+    v = np.cross(z, d)
+    c = z.dot(d)
+    vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]], dtype=float)
+    return np.eye(3) + vx + vx.dot(vx) * (1.0 / (1.0 + c))
 
-M = (Matrix.Translation(Vector((0, 0, 0))) @
-     Matrix.Rotation(math.radians(90), 4, 'X') @     # standing -> supine, chest faces +Z
-     Matrix.Diagonal((scale, scale, scale, 1.0)))
-for o in meshes:
-    o.data.transform(M)
-    o.matrix_world = Matrix.Identity(4)
 
-# centre on the chest, using the gland as the anchor of interest
-bpy.context.view_layer.update()
-gb = [Vector(c) for c in body.bound_box]
-bbmin = Vector((min(v.x for v in gb), min(v.y for v in gb), min(v.z for v in gb)))
-bbmax = Vector((max(v.x for v in gb), max(v.y for v in gb), max(v.z for v in gb)))
-ctr = (bbmin + bbmax) / 2
-for o in meshes:
-    o.data.transform(Matrix.Translation(-ctr))
-    o.matrix_world = Matrix.Identity(4)
-bpy.context.view_layer.update()
-
-gland = next((o for o in bpy.data.objects if o.name.startswith('gland__')), None)
-gc = Vector((0, 0, 0))
-if gland:
-    pts = [gland.matrix_world @ v.co for v in gland.data.vertices]
-    gc = sum(pts, Vector()) / len(pts)
-print("GLAND CENTRE", tuple(round(c, 4) for c in gc))
-
-# The cut-away breast is left open on purpose: it is the view the opening steps need, and
-# filling it (as an earlier pass did) closes it with one enormous flat face that reads as a
-# sheet of plastic lying on the chest.
-
-# ---------------------------------------------------------------- materials
-def mat(name, color, rough=0.55, metal=0.0, alpha=1.0, emit=None):
-    m = bpy.data.materials.new(name); m.use_nodes = True
-    b = m.node_tree.nodes["Principled BSDF"]
-    b.inputs["Base Color"].default_value = (*color, 1.0)
-    b.inputs["Roughness"].default_value = rough
-    b.inputs["Metallic"].default_value = metal
-    if alpha < 1.0:
-        b.inputs["Alpha"].default_value = alpha
-        m.blend_method = 'BLEND'
-    if emit:
-        b.inputs["Emission Color"].default_value = (*emit, 1.0)
-        b.inputs["Emission Strength"].default_value = 0.5
+def cyl_mesh(radius, length, sections=24, direction=None, center=(0, 0, 0)):
+    """Z-axis cylinder centred on origin, stretched along `direction` by `length`."""
+    m = trimesh.primitives.Cylinder(radius=radius, height=length, sections=int(sections))
+    if direction is not None:
+        R = align_z_to(direction)
+        mm = np.eye(4); mm[:3, :3] = R; mm[:3, 3] = np.asarray(center, dtype=float)
+        m.apply_transform(mm)
+    else:
+        m.apply_translation(np.asarray(center, dtype=float))
     return m
 
-SKIN  = mat("m_skin",  (0.90, 0.79, 0.70), 0.62)
-LES   = mat("m_lesion",(0.62, 0.14, 0.18), 0.45, emit=(0.3, 0.04, 0.04))
-METAL = mat("m_metal", (0.80, 0.82, 0.86), 0.26, metal=0.9)
-PROBE = mat("m_probe", (0.18, 0.21, 0.26), 0.45, metal=0.2)
-WHITE = mat("m_white", (0.94, 0.95, 0.97), 0.5)
-CLIPM = mat("m_clip",  (0.74, 0.76, 0.80), 0.34, metal=0.85)
 
-if body.data.materials:
-    body.data.materials[0] = SKIN
-else:
-    body.data.materials.append(SKIN)
+def box_mesh(extents, direction=None, center=(0, 0, 0)):
+    """Box centred on origin with the given extents; optionally rotate +Z to `direction`."""
+    m = trimesh.primitives.Box(extents=np.asarray(extents, dtype=float))
+    if direction is not None:
+        R = align_z_to(direction)
+        mm = np.eye(4); mm[:3, :3] = R; mm[:3, 3] = np.asarray(center, dtype=float)
+        m.apply_transform(mm)
+    else:
+        m.apply_translation(np.asarray(center, dtype=float))
+    return m
 
-def sphere(n, loc, r, m, segs=40):
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=r, location=loc, segments=segs, ring_count=segs//2)
-    o = bpy.context.active_object; o.name = n; o.data.materials.append(m)
-    bpy.ops.object.shade_smooth(); return o
 
-def cyl(n, p0, p1, r, m, v=24):
-    p0, p1 = Vector(p0), Vector(p1); d = p1 - p0
-    bpy.ops.mesh.primitive_cylinder_add(radius=r, depth=d.length, vertices=v, location=(p0+p1)/2)
-    o = bpy.context.active_object; o.name = n; o.data.materials.append(m)
-    o.rotation_mode = 'QUATERNION'; o.rotation_quaternion = d.to_track_quat('Z','Y')
-    bpy.ops.object.shade_smooth(); return o
+def torus_mesh(major_r, minor_r, major_seg=28, minor_seg=10, direction=None, center=(0, 0, 0)):
+    """Manual torus whose ring lies in the XY plane (major axis +Z), rotated to face `direction`."""
+    u = np.linspace(0, 2 * np.pi, major_seg + 1)[:-1]
+    v = np.linspace(0, 2 * np.pi, minor_seg + 1)[:-1]
+    uu, vv = np.meshgrid(u, v); uu = uu.ravel(); vv = vv.ravel()
+    verts = np.stack([
+        (major_r + minor_r * np.cos(vv)) * np.cos(uu),
+        (major_r + minor_r * np.cos(vv)) * np.sin(uu),
+        minor_r * np.sin(vv),
+    ], axis=1)
+    faces = []
+    for i in range(major_seg):
+        for j in range(minor_seg):
+            a = i * minor_seg + j
+            b = i * minor_seg + (j + 1) % minor_seg
+            c = ((i + 1) % major_seg) * minor_seg + j
+            dd = ((i + 1) % major_seg) * minor_seg + (j + 1) % minor_seg
+            faces.append([a, b, dd]); faces.append([a, dd, c])
+    m = trimesh.Trimesh(verts, np.array(faces, dtype=np.int64))
+    m.merge_vertices(); m.fix_normals()
+    if direction is not None:
+        R = align_z_to(direction)
+        mm = np.eye(4); mm[:3, :3] = R; mm[:3, 3] = np.asarray(center, dtype=float)
+        m.apply_transform(mm)
+    else:
+        m.apply_translation(np.asarray(center, dtype=float))
+    return m
 
-def box(n, loc, size, m, bevel=0.003):
-    bpy.ops.mesh.primitive_cube_add(size=1, location=loc)
-    o = bpy.context.active_object; o.name = n; o.data.materials.append(m)
-    o.scale = size; bpy.ops.object.transform_apply(scale=True)
-    if bevel:
-        md = o.modifiers.new("b", 'BEVEL'); md.width = bevel; md.segments = 3
-        bpy.ops.object.modifier_apply(modifier=md.name)
-    return o
 
-# ---------------------------------------------------------------- the lump
-lump = Vector((gc.x, gc.y, gc.z + 0.005))   # slightly deeper than the surface, in the outer gland
-sphere("lesion__lump", lump, LESION_RADIUS, LES, 40)
+def ray_cast(mesh, origin, direction):
+    """Return (hit, point, normal) using trimesh's ray intersector."""
+    origins = np.asarray([origin], dtype=float)
+    directions = np.asarray([direction], dtype=float)
+    locs, _tri, _ray = mesh.ray.intersects_location(origins, directions)
+    locs = np.asarray(locs, dtype=float).reshape(-1, 3)
+    if len(locs):
+        return True, locs[0], None
+    return False, None, None
 
-# ------------------------------------------------------------ probe + needle
-# Inferior approach: the needle enters on the lower (inferior) aspect of the breast and
-# rises up into the lump, the way an ultrasound-guided core biopsy is actually done.
-# The probe stays over the lump and is kept clear of the shaft by the check below.
-# Enter on the INFERIOR surface of the breast - the lower curve, at skin level - and travel
-# up and back into the lump at roughly 45 degrees. The earlier attempt put the entry BELOW the
-# lump in depth (z < lump.z), which is inside the body, not on the skin.
-# Entry ON the skin at the inferior margin of the breast - the base - so the needle is
-# superficial where it starts rather than already inside the gland.
-# One entry for every instrument, on the INTACT inferior-lateral surface of the breast.
-# Ray-casting straight above the lump hits the cut-away cavity, so sample a small patch and
-# take the highest skin point: this is what kept the entry drifting onto the chest wall.
-_ex, _ey = lump.x - 0.030, lump.y + 0.030
-_zs = []
-for _dx in (-0.012, 0.0, 0.012):
-    for _dy in (-0.012, 0.0, 0.012):
-        _h, _l, _nn, _ii = body.ray_cast(Vector((_ex+_dx, _ey+_dy, 0.5)), Vector((0, 0, -1)))
-        if _h:
-            _zs.append(_l.z)
-_skin_z = max(_zs) if _zs else lump.z + 0.030
-entry  = Vector((_ex, _ey, _skin_z + 0.002))
-print("ENTRY on breast", tuple(round(c,3) for c in entry), "of", len(_zs), "rays")
-tip    = lump + (lump - entry).normalized() * 0.012   # past the centre, inside the far half of the lump
-d      = (tip - entry).normalized()
 
-# A core-biopsy needle has a bevel tip, not a blunt end: the reference animation shows a
-# sharp angled point. Shaft stops short and a short cone finishes it.
-bevel_base = tip - d*0.005
-cyl("needle__shaft", entry - d*0.028, bevel_base, 0.0022, METAL)
-bpy.ops.mesh.primitive_cone_add(radius1=0.0022, radius2=0.0, depth=0.005,
-                                location=bevel_base + d*0.0025)
-_bev = bpy.context.active_object
-_bev.name = "needle__bevel"
-_bev.rotation_mode = 'QUATERNION'; _bev.rotation_quaternion = d.to_track_quat('Z','Y')
-_bev.data.materials.append(METAL)
-bpy.ops.object.shade_smooth()
-cyl("needle__guide", entry - d*0.018, entry + d*0.008, 0.0030, PROBE, 20)
-cyl("needle__hub",   entry - d*0.028, entry - d*0.046, 0.0050, WHITE, 20)
-tb = box("needle__trough", tip - d*0.010, (0.0016, 0.0022, 0.014), METAL, bevel=0.0004)
-tb.rotation_mode = 'QUATERNION'; tb.rotation_quaternion = d.to_track_quat('Z','Y')
+# --------------------------------------------------------------------- load source
+scene = trimesh.load(SRC, process=False)
 
-# ------------------------------------------------------------ ultrasound probe
-# A linear-array transducer, not a box: a thin head with a strip footprint, a narrower
-# handle behind it and a cable stub. It sits medial to the needle track so the two never
-# share space - a needle entering at the probe's lateral edge and running beneath it is
-# the geometry the frames need to read.
-# ---------------------------------------------------------- ultrasound probe
-# Geometry follows the FNAC leaflet's probe, which reads correctly: a flat rectangular
-# footprint ON the skin, a tapered body behind it, a cylindrical handle angled up and back,
-# and a cable. The skin normal here is +Z and the long axis runs head-to-foot (Y).
-px, py = lump.x, lump.y
-zs = []
-# Sample a WIDE neighbourhood: the lesion sits under the cut-away cavity, so casting only
-# beneath the footprint drops the probe into the hole. The rim is what it should rest on.
-for dx in (-0.045, -0.022, 0.0, 0.022, 0.045):
-    for dy in (-0.045, -0.022, 0.0, 0.022, 0.045):
-        hit, loc, nor, idx = body.ray_cast(Vector((px + dx, py + dy, 0.5)), Vector((0, 0, -1)))
-        if hit:
-            zs.append(loc.z)
-skin_z = max(zs) if zs else 0.0985
+role_map = {"body": "Body", "gland": "Glands", "duct": "Ducts", "muscle": "Muscles"}
+src_geo = {}
+for node_name in scene.graph.nodes_geometry:
+    g = scene.geometry[node_name].copy()
+    g.apply_transform(scene.graph.get(node_name)[0])  # world transform (source units ~cm)
+    for role, key in role_map.items():
+        if node_name.split(".")[-1].startswith(key):
+            src_geo.setdefault(role, []).append(g)
 
-FOOT_LEN, FOOT_WID, FOOT_H = 0.052, 0.016, 0.004      # along Y, along X, thickness
-GAP = 0.004                                             # clears the tilted footprint from the track
-base = skin_z + GAP
+body = src_geo["body"][0]
+gland = src_geo["gland"][0]
+muscle = src_geo["muscle"][0]
+ducts_0 = src_geo["duct"][0]
+ducts_1 = src_geo["duct"][1]
 
-probe_parts = [
-    box("probe__footprint", Vector((px, py, base + FOOT_H / 2)),
-        (FOOT_WID, FOOT_LEN, FOOT_H), WHITE, bevel=0.0012),
-    box("probe__body", Vector((px, py, base + FOOT_H + 0.014)),
-        (FOOT_WID * 1.15, FOOT_LEN * 0.42, 0.028), PROBE, bevel=0.0035),
-]
-# handle: 28 deg off the skin normal, leaning back toward the head end
-hd_start = Vector((px - 0.006, py, base + 0.030))
-hd_dir = Vector((-math.sin(math.radians(28)), 0.0, math.cos(math.radians(28))))
+# Merge the two Ducts meshes into one duct__ducts geometry (before mirroring).
+ducts = trimesh.util.concatenate([ducts_0, ducts_1])
+ducts.merge_vertices()
+
+# --------------------------------------------------------------------- scale + rotate + centre
+w = body.bounds[1][0] - body.bounds[0][0]
+scale = CHEST_W / max(w, 1e-6)
+
+def apply_transform(mesh, s=1.0, rot=R_SUPINE, trans=np.zeros(3)):
+    mm = np.eye(4); mm[:3, :3] = rot * s; mm[:3, 3] = trans
+    return mesh.apply_transform(mm)
+
+anatomy = {"body": body, "gland": gland}   # ducts/muscle are cutaway plates: they read as
+# streaks and a flat wall once the skin is closed, so only the glandular lobules carry the
+# "inside the breast" story.
+for k in anatomy:
+    anatomy[k] = apply_transform(anatomy[k], scale)
+
+# Centre on the body bounding box (gland is the anchor of interest).  Use identity rotation for
+# the translation step -- the default rot=R_SUPINE would re-apply the standing->supine rotation.
+ctr = (anatomy["body"].bounds[0] + anatomy["body"].bounds[1]) / 2
+for k in anatomy:
+    anatomy[k] = apply_transform(anatomy[k], 1.0, rot=np.eye(3), trans=-ctr)
+
+# --------------------------------------------------------------------- whole torso
+# The source asset is a cutaway model: its LEFT (-X) side is complete, while the +X chest is
+# opened for display and the breast skin there is simply absent (rays pass straight through).
+# Rebuilding the body as the intact -X half plus its mirror gives one symmetric, complete torso
+# with both breasts whole - the user's core complaint about the model this replaces.
+_b = anatomy["body"]
+_half = _b.slice_plane(plane_origin=[0.0, 0.0, 0.0], plane_normal=[1.0, 0.0, 0.0], cap=False)
+if _half.vertices[:, 0].max() > 0.01:      # keep whichever side the slicer left us
+    _half = _b.slice_plane(plane_origin=[0.0, 0.0, 0.0], plane_normal=[-1.0, 0.0, 0.0], cap=False)
+_m = _half.copy()
+_m.vertices[:, 0] *= -1.0
+_m.invert()
+_whole = trimesh.util.concatenate([_half, _m])
+_whole.merge_vertices()
+_whole.remove_unreferenced_vertices()
+_whole.fix_normals()
+
+# The mirrored asset's own breast is a shallow mound (about 30 mm proud of a flat chest), which
+# reads as a mannequin rather than a breast. Lift a smooth symmetric volume over each breast so the
+# form is the one the leaflet describes: a rounded mound, mirrored exactly left and right.
+_v = np.asarray(_whole.vertices, dtype=float)
+_n = np.asarray(_whole.vertex_normals, dtype=float)
+_ax = np.abs(_v[:, 0])
+_r = np.sqrt(((_ax - 0.070) / 0.070) ** 2 + ((_v[:, 2] + 0.025) / 0.078) ** 2)
+_w = np.where(_r < 1.0, np.cos(0.5 * np.pi * np.minimum(_r, 1.0)) ** 2, 0.0)
+_w *= np.clip((_v[:, 1] - 0.02) / 0.03, 0.0, 1.0)   # front skin only
+_v = _v + _n * (0.030 * _w)[:, None]
+_whole.vertices = _v
+_whole.fix_normals()
+anatomy["body"] = _whole
+print("BODY mirrored to whole torso:", len(_whole.vertices), "verts, watertight", _whole.is_watertight)
+
+# --------------------------------------------------------------------- decimate
+_role_ratio = {"body": "body", "gland": "gland"}
+for role, mesh in anatomy.items():
+    r = RATIO[_role_ratio[role]]
+    try:
+        mesh.merge_vertices(); mesh.fix_normals()
+        simplified = mesh.simplify_quadric_decimation(percent=1.0 - r)
+        simplified.merge_vertices(); simplified.fix_normals()
+        mesh.vertices = simplified.vertices
+        mesh.faces = simplified.faces
+    except Exception as e:
+        print("decimate warning", role, e)
+
+# Merge decimated anatomy into a single whole-skin raycast mesh (the internal layers sit inside
+# the body and never affect downward skin raycasts, but combining keeps one consistent surface).
+bodym = anatomy["body"]   # the skin surface every raycast below must use
+combo = trimesh.util.concatenate(list(anatomy.values()))
+combo.merge_vertices()
+combo.nondegenerate_faces()
+
+# --------------------------------------------------------------------- the lump
+# User-approved placement taken verbatim from the model this replaces: the lesion sits in the
+# outer gland, slightly deeper than the surface.
+lump = np.array([0.0751, 0.0735, -0.0157])
+print("LUMP     ", tuple(round(c, 3) for c in lump))
+
+# --------------------------------------------------------------------- entry point
+# Every instrument shares ONE entry on the lower (anterior) aspect of the breast. The anterior
+# chest faces +Y here, so the skin is found by raycasting straight down (-Y). `skin_at` samples a
+# small patch and returns the first (closest) hit's y and outward normal - this is where the
+# needle, probe, syringe and scalpel all meet.
+def skin_at(x, z):
+    """First (closest) hit of the -Y ray straight down from (x, 0.2, z): its y and outward normal.
+
+    Raycast against the BODY alone. Casting against the merged anatomy hit the internal muscle
+    plate wherever it reaches past the skin (the outer chest), which seated the probe 2 cm low.
+    """
+    o = np.array([[x, 0.2, z]]); d = np.array([[0, -1, 0]])
+    locs, _tri, _ray = bodym.ray.intersects_location(o, d)
+    if len(locs):
+        locs = np.asarray(locs).reshape(-1, 3)
+        dd = np.linalg.norm(locs - o, axis=1)
+        j = int(np.argmin(dd)); t = int(locs[j][2])
+        return (dd[j], locs[j][1], bodym.face_normals[t])
+    return None
+
+ex, ez = lump[0] - 0.030, lump[2] - 0.030
+entry_hit = skin_at(ex, ez)
+entry_y = entry_hit[1] if entry_hit else lump[1]
+entry = np.array((ex, entry_y, ez))
+print("ENTRY on breast", tuple(round(c, 3) for c in entry), "of", len(entry_hit), "rays")
+
+tip = lump + (lump - entry) / np.linalg.norm(lump - entry) * 0.012
+d_axis = (tip - entry) / np.linalg.norm(tip - entry)
+
+# --------------------------------------------------------------------- needle
+bevel_base = tip - d_axis * 0.005
+anatomy["needle__shaft"] = cyl_mesh(0.0022, 0.028, direction=d_axis, center=entry - d_axis * 0.014)
+anatomy["needle__bevel"] = cyl_mesh(0.0022, 0.005, direction=d_axis,
+                                    center=bevel_base + d_axis * 0.0025)
+anatomy["needle__guide"] = cyl_mesh(0.0030, 0.026, direction=d_axis,
+                                    center=entry - d_axis * 0.005)
+anatomy["needle__hub"] = cyl_mesh(0.0050, 0.018, direction=d_axis,
+                                  center=entry - d_axis * 0.037)
+
+# needle__trough: small box aligned to the needle axis
+through = box_mesh((0.0016, 0.0022, 0.014), direction=d_axis, center=tip - d_axis * 0.010)
+anatomy["needle__trough"] = through
+
+# --------------------------------------------------------------------- ultrasound probe
+# A linear-array transducer: a thin footprint resting on the anterior skin over the lump, a body
+# behind it, then handle and cable. The long axis is aligned to the needle trajectory in full 3D
+# (not just its in-plane projection) so the probe and needle lie along one line.
+GAP = 0.0012
+FOOT_LEN, FOOT_WID, FOOT_H = 0.052, 0.016, 0.004
+seat_hit = skin_at(lump[0], lump[2])
+seat_y = seat_hit[1] if seat_hit else lump[1]
+
+# Orthonormal basis for the probe: long axis = needle direction (L), thickness = skin normal
+# projected perpendicular to L (N'), width = in-plane perp (W = N' x L).  The needle enters at an
+# angle to the skin, so N and L are not perpendicular - orthogonalise N against L before use.
+L = d_axis
+N = np.asarray(seat_hit[2]) if seat_hit else np.array([0.0, 1.0, 0.0])
+N = N - (N.dot(L)) * L          # strip the component of the normal along the needle
+nl = np.linalg.norm(N)
+if nl < 1e-9:  # skin normal nearly parallel to needle; use a fixed in-plane thickness axis
+    N = np.cross(np.array([0.0, 0.0, 1.0]), L); nl = np.linalg.norm(N)
+N = N / nl
+W = np.cross(N, L)
+M = np.array([[W[0], N[0], L[0]],
+              [W[1], N[1], L[1]],
+              [W[2], N[2], L[2]]])
+if np.linalg.det(M) < 0:      # keep a right-handed rotation
+    W = -W
+    M = np.array([[W[0], N[0], L[0]],
+                  [W[1], N[1], L[1]],
+                  [W[2], N[2], L[2]]])
+
+# Rest the probe on the skin over the lump - the ultrasound picture the leaflet shows: the
+# transducer lies on the anterior skin with the needle passing beneath it into the lesion.
+foot_center = np.array((lump[0], seat_y, lump[2]))
+foot_center = foot_center + N * (GAP + FOOT_H * 0.5)   # bottom face just above the local skin
+
+def orient(box, extents, center):
+    mm = np.eye(4); mm[:3, :3] = M; mm[:3, 3] = center
+    box.apply_transform(mm)
+    return box
+
+footprint = orient(trimesh.primitives.Box(extents=np.array([FOOT_WID, FOOT_H, FOOT_LEN])),
+                   np.array([FOOT_WID, FOOT_H, FOOT_LEN]), foot_center)
+anatomy["probe__footprint"] = footprint
+body_c = foot_center + N * (FOOT_H + 0.014)
+probe_body = orient(trimesh.primitives.Box(extents=np.array([FOOT_WID * 1.15, FOOT_H * 1.3, FOOT_LEN * 0.42])),
+                    np.array([FOOT_WID * 1.15, FOOT_H * 1.3, FOOT_LEN * 0.42]), body_c)
+anatomy["probe__body"] = probe_body
+
+# handle: off the skin (+normal), tilted toward the head/deep end; cable follows.
+hd_dir = np.array([N[0] + L[0], N[1] + L[1], N[2] + L[2]])
+hd_dir = hd_dir / np.linalg.norm(hd_dir)
+hd_start = foot_center + N * 0.03
 hd_end = hd_start + hd_dir * 0.085
-probe_parts.append(cyl("probe__handle", hd_start, hd_end, 0.013, PROBE, 18))
-cb_dir = Vector((-math.sin(math.radians(42)), 0.0, math.cos(math.radians(42))))
-probe_parts.append(cyl("probe__cable", hd_end, hd_end + cb_dir * 0.070, 0.006, PROBE, 12))
+anatomy["probe__handle"] = cyl_mesh(0.013, 0.085, direction=(hd_end - hd_start), center=hd_start)
+cb_dir = np.array([N[0] + 0.5 * L[0], N[1] + 0.5 * L[1], N[2] + 0.5 * L[2]])
+cb_dir = cb_dir / np.linalg.norm(cb_dir)
+anatomy["probe__cable"] = cyl_mesh(0.006, 0.070, direction=cb_dir, center=hd_end)
 
-# Sit the assembly flush with the sloping breast rather than hovering at one edge.
-def _skin_at(x, y):
-    hit, loc, nor, idx = body.ray_cast(Vector((x, y, 0.5)), Vector((0, 0, -1)))
-    return loc.z if hit else skin_z
-slope = (_skin_at(px, py + 0.024) - _skin_at(px, py - 0.024)) / 0.048
-tilt = max(-0.09, min(0.09, math.atan(slope)))   # small tilt only: a tilted edge dips into the needle track
-pivot = Vector((px, py, base))
-R = (Matrix.Translation(pivot) @ Matrix.Rotation(tilt, 4, 'X') @ Matrix.Translation(-pivot))
-for o in probe_parts:
-    o.matrix_world = R @ o.matrix_world
+print("PROBE footprint", FOOT_LEN, "x", FOOT_WID, "m | seat y", round(seat_y, 4),
+      "| long-axis||needle:", round(abs(np.cross(d_axis, L)).sum(), 4))
 
-# Long axis stays along Y: the craniocaudal axis, which is how a breast lesion is scanned,
-# and the plane the needle runs in. The needle passes beneath the footprint, in line with it.
-print("PROBE footprint", FOOT_LEN, "x", FOOT_WID, "m | tilt", round(math.degrees(tilt), 1), "deg")
-
-# Swing the assembly so its long axis runs PARALLEL to the needle's trajectory, projected on
-# the skin plane: the probe and the needle then lie along one line, as in the reference.
-_h = Vector((d.x, d.y, 0.0))
-if _h.length > 1e-6:
-    _h.normalize()
-    _ang = math.atan2(_h.x, _h.y) + math.pi/2   # +90: the footprint's long axis is X after the housing rotation
-    _Rz = (Matrix.Translation(Vector((px, py, base)))
-           @ Matrix.Rotation(_ang, 4, 'Z')
-           @ Matrix.Translation(-Vector((px, py, base))))
-    for o in probe_parts:
-        o.matrix_world = _Rz @ o.matrix_world
-    print("PROBE long axis parallel to needle:", round(math.degrees(_ang), 1), "deg")
-
-# ------------------------------------------------------------- clearance check
-# True separation between the needle shaft and the whole probe, not just an x-gap: sample the
-# shaft and measure each sample's distance to the probe box.
-probe_objs = [bpy.data.objects[n] for n in
-              ('probe__body', 'probe__handle', 'probe__footprint', 'probe__cable')]
+# --------------------------------------------------------------------- clearance check
+probe_objs = [anatomy[n] for n in ("probe__body", "probe__handle", "probe__footprint", "probe__cable")]
 pb = []
 for o in probe_objs:
-    pb += [o.matrix_world @ Vector(c) for c in o.bound_box]
-pmin = Vector((min(v[i] for v in pb) for i in range(3)))
-pmax = Vector((max(v[i] for v in pb) for i in range(3)))
+    b = np.asarray(o.bounds)  # (2, 3): [[xmin,ymin,zmin],[xmax,ymax,zmax]]
+    pb.append(b[0]); pb.append(b[1])
+pmin = np.min(np.vstack(pb), axis=0)
+pmax = np.max(np.vstack(pb), axis=0)
 
 def box_dist(q, lo, hi):
-    d = Vector((max(lo[i] - q[i], 0.0, q[i] - hi[i]) for i in range(3)))
-    return d.length
+    dd = np.array([max(lo[i] - q[i], 0.0, q[i] - hi[i]) for i in range(3)])
+    return np.linalg.norm(dd)
 
 inside, near = 0, 9.9
 for k in range(41):
-    q = entry.lerp(tip, k / 40)
+    q = entry + (tip - entry) * (k / 40)
     inside += 1 if all(pmin[i] < q[i] < pmax[i] for i in range(3)) else 0
     near = min(near, box_dist(q, pmin, pmax))
 print("PROBE size", tuple(round(pmax[i] - pmin[i], 3) for i in range(3)),
-      "| bottom z", round(pmin.z, 4), "| skin z", round(skin_z, 4))
+      "| bottom y", round(pmin[1], 4), "| seat y", round(seat_y, 4))
 print("NEEDLE entry", tuple(round(c, 3) for c in entry), "tip", tuple(round(c, 3) for c in tip))
 print("CLEARANCE", round(near, 4), "m | shaft samples inside probe:", inside)
-_ang = math.degrees(math.acos(max(-1, min(1, (lump - entry).normalized().dot(Vector((0, 1, 0)))))))
+_dir = (lump - entry) / np.linalg.norm(lump - entry)
+_ang = np.degrees(np.arccos(max(-1, min(1, _dir.dot(np.array([0, 1, 0]))))))
 print("NEEDLE approach angle from the skin plane:", round(90 - _ang, 1), "deg")
 
-_sh = bpy.data.objects.get("needle__shaft")
-if _sh:
-    _c = sum((_sh.matrix_world @ Vector(b) for b in _sh.bound_box), Vector()) / 8
-    _line = (lump - entry).normalized()
-    _to_c = (_c - entry)
-    _per = _to_c - _line * _to_c.dot(_line)
-    print("SHAFT centre", tuple(round(v, 4) for v in _c),
-          "| off-axis", round(_per.length, 5), "m",
-          "| angle", round(math.degrees(math.acos(max(-1, min(1, _line.normalized().dot((tip-entry).normalized()))))), 2), "deg")
+# --------------------------------------------------------------------- clip (perpendicular to needle axis)
+torus = torus_mesh(0.0038, 0.0008, major_seg=28, minor_seg=10)
+# orient the ring plane perpendicular to the needle: ring normal is +Z, rotate so +Z -> d_axis
+R_clip = np.eye(4); R_clip[:3, :3] = align_z_to(d_axis)
+R_clip[:3, 3] = lump
+torus.apply_transform(R_clip)
+anatomy["clip__marker"] = torus
 
-bpy.ops.mesh.primitive_torus_add(location=lump,
-                                 major_radius=0.0038, minor_radius=0.0008,
-                                 major_segments=28, minor_segments=10)
-c = bpy.context.active_object; c.name = "clip__marker"; c.data.materials.append(CLIPM)
-c.rotation_euler = Euler((math.radians(78), 0, math.radians(20)), 'XYZ')
-bpy.ops.object.shade_smooth()
+# --------------------------------------------------------------------- dressing conform pad
+# Conforming pad: a 5x5 grid of -Y skin raycasts around the entry. Each bottom vertex sits 1.5 mm
+# off the skin along its OWN surface normal, each top vertex 2.2 mm further out - so the pad follows
+# the breast's curvature instead of floating on a flat plane.
+PAD_R = 0.024
+PAD_T = 0.0035
+n_entry = np.asarray(entry_hit[2], dtype=float) if entry_hit else np.array([0.0, 1.0, 0.0])
+n_entry = n_entry / max(1e-9, np.linalg.norm(n_entry))
+bottom_pts, top_pts = [], []
+grid = np.linspace(-PAD_R, PAD_R, 5)
+for gx in grid:
+    for gy in grid:
+        h = skin_at(entry[0] + gx, entry[2] + gy)
+        sy = h[1] if h else entry_y
+        nr = np.asarray(h[2], dtype=float) if h else n_entry
+        nr = nr / max(1e-9, np.linalg.norm(nr))
+        p = np.array((entry[0] + gx, sy, entry[2] + gy))
+        bottom_pts.append(p + nr * 0.0015)
+        top_pts.append(p + nr * (0.0015 + PAD_T))
+pad_bottom = np.array(bottom_pts)
+pad_top = np.array(top_pts)
 
-# Dressing built like the FNAC leaflet's: a gauze pad flattened onto the skin at the entry
-# point, with an adhesive strip across it.
-hit, dloc, dnor, didx = body.ray_cast(Vector((entry.x, entry.y, 0.5)), Vector((0, 0, -1)))
-d_skin = dloc.z if hit else skin_z
-PAD_R, PAD_H = 0.016, 0.0022
-cyl("dressing__pad", Vector((entry.x, entry.y, d_skin + PAD_H)),
-    Vector((entry.x, entry.y, d_skin + GAP)), PAD_R, WHITE, 28)
-box("dressing__strip", Vector((entry.x, entry.y, d_skin + PAD_H + 0.0012)),
-    (PAD_R * 1.9, PAD_R * 0.55, 0.0016), WHITE, bevel=0.0006)
+n = 5
+nn = n * n
+faces = []
+for i in range(n - 1):
+    for j in range(n - 1):
+        a = i * n + j; b = a + 1; c = a + n; d = c + 1
+        faces += [[a + nn, b + nn, d + nn], [a + nn, d + nn, c + nn]]   # outer sheet
+        faces += [[a, d, b], [a, c, d]]                                # skin-side sheet
+border = ([k * n for k in range(n)] + [k * n + n - 1 for k in range(1, n)]
+          + [(n - 1) * n + k for k in range(n - 2, -1, -1)] + [k for k in range(n - 2, 0, -1)])
+for u, v in zip(border, border[1:] + border[:1]):
+    bu, bv, tu, tv = u, v, u + nn, v + nn
+    faces += [[bu, bv, tv], [bu, tv, tu]]
 
-def _skin(x, y):
-    hit, loc, nor, idx = body.ray_cast(Vector((x, y, 0.5)), Vector((0, 0, -1)))
-    return loc.z if hit else lump.z + 0.030
+pad_verts = np.concatenate([pad_bottom, pad_top], axis=0)
+dressing_pad = trimesh.Trimesh(pad_verts, np.array(faces, dtype=np.int64))
+dressing_pad.merge_vertices(); dressing_pad.fix_normals()
+anatomy["dressing__pad"] = dressing_pad
 
-# ------------------------------------------------ local anaesthetic syringe
-# The anaesthetic goes in AT the point where the biopsy needle will enter, so that is where
-# the syringe sits: needle tip on the skin at the entry point, barrel standing off from it.
-s_tip  = Vector((entry.x, entry.y, entry.z))   # exactly the biopsy entry point
-s_dir  = (lump - s_tip).normalized()
-needle_back = s_tip - s_dir*0.026
-barrel0 = needle_back - s_dir*0.004
-barrel1 = barrel0 - s_dir*0.050
-cyl("syringe__needle", s_tip, needle_back, 0.0006, METAL, 10)
-cyl("syringe__hub",    needle_back, barrel0, 0.0018, WHITE, 12)
-cyl("syringe__barrel", barrel0, barrel1, 0.0050, WHITE, 20)
-cyl("syringe__plunger", barrel1, barrel1 - s_dir*0.024, 0.0022, PROBE, 12)
-cyl("syringe__finger", barrel1, barrel1 - s_dir*0.003, 0.0075, PROBE, 16)
-print("SYRINGE tip", tuple(round(c,3) for c in s_tip))
+# dressing__strip rides on the pad: thin box lying in the skin plane (long along W, thin along N)
+strip_center = pad_top.mean(0) + n_entry * 0.0008
+Mstrip = np.array([[W[0], N[0], L[0]],
+                   [W[1], N[1], L[1]],
+                   [W[2], N[2], L[2]]])
+strip = trimesh.primitives.Box(extents=np.array([PAD_R * 1.9, 0.0016, PAD_R * 0.55]))
+mm = np.eye(4); mm[:3, :3] = Mstrip; mm[:3, 3] = strip_center
+strip.apply_transform(mm)
+anatomy["dressing__strip"] = strip
 
-# ------------------------------------------------------------- scalpel
-# Two solids: a flat grip and a slim blade tapering to a point. Built from boxes because the
-# bmesh wedge rendered as stray triangles at phone scale.
-c_tip = Vector((entry.x, entry.y, entry.z))
-c_dir = (c_tip - Vector((entry.x - 0.035, entry.y - 0.045, c_tip.z + 0.050))).normalized()
-grip = box("scalpel__handle", c_tip + c_dir*0.055, (0.010, 0.006, 0.080), PROBE, bevel=0.0015)
-grip.rotation_mode = 'QUATERNION'; grip.rotation_quaternion = c_dir.to_track_quat('Z','Y')
-blade = box("scalpel__blade", c_tip + c_dir*0.016, (0.007, 0.0012, 0.032), METAL, bevel=0.0004)
-blade.rotation_mode = 'QUATERNION'; blade.rotation_quaternion = c_dir.to_track_quat('Z','Y')
-print("SCALPEL at", tuple(round(c,3) for c in c_tip))
+# --------------------------------------------------------------------- local anaesthetic syringe
+s_tip = entry.copy()
+s_dir = (lump - s_tip) / np.linalg.norm(lump - s_tip)
+needle_back = s_tip - s_dir * 0.026
+barrel0 = needle_back - s_dir * 0.004
+barrel1 = barrel0 - s_dir * 0.050
+anatomy["syringe__needle"] = cyl_mesh(0.0006, 0.026, direction=s_dir, center=s_tip)
+anatomy["syringe__hub"] = cyl_mesh(0.0018, 0.004, direction=s_dir, center=needle_back)
+anatomy["syringe__barrel"] = cyl_mesh(0.0050, 0.050, direction=s_dir, center=barrel0)
+anatomy["syringe__plunger"] = cyl_mesh(0.0022, 0.024, direction=s_dir, center=barrel1)
+anatomy["syringe__finger"] = cyl_mesh(0.0075, 0.003, direction=s_dir, center=barrel1)
+print("SYRINGE tip", tuple(round(c, 3) for c in s_tip))
 
-def _centre_of(names):
+# --------------------------------------------------------------------- scalpel
+c_tip = entry.copy()
+c_dir = (c_tip - np.array((entry[0] - 0.035, entry[1] - 0.045, c_tip[2] + 0.050)))
+c_dir = c_dir / np.linalg.norm(c_dir)
+anatomy["scalpel__handle"] = box_mesh((0.010, 0.006, 0.080), direction=c_dir, center=c_tip + c_dir * 0.055)
+anatomy["scalpel__blade"] = box_mesh((0.007, 0.0012, 0.032), direction=c_dir, center=c_tip + c_dir * 0.016)
+print("SCALPEL at", tuple(round(c, 3) for c in c_tip))
+
+# --------------------------------------------------------------------- diagnostics
+def centre_of(names):
     pts = []
     for n in names:
-        o = bpy.data.objects.get(n)
-        if o:
-            pts += [o.matrix_world @ Vector(c) for c in o.bound_box]
-    lo = Vector((min(v[i] for v in pts) for i in range(3)))
-    hi = Vector((max(v[i] for v in pts) for i in range(3)))
+        if n in anatomy:
+            pts += np.asarray(anatomy[n].bounds).reshape(-1, 3).tolist()
+    lo = np.min(np.vstack(pts), axis=0)
+    hi = np.max(np.vstack(pts), axis=0)
     return (lo + hi) / 2
 
-print("LUMP     ", tuple(round(c,3) for c in lump))
-print("PROBE mid", tuple(round(c,3) for c in _centre_of(
-    ('probe__body','probe__footprint','probe__handle','probe__cable'))))
-print("CLIP mid ", tuple(round(c,3) for c in _centre_of(('clip__marker',))))
-clip_c = _centre_of(('clip__marker',))
-print("CLIP-to-LUMP", round((clip_c - lump).length, 4), "m")
-print("FOOTPRINT mid", tuple(round(c,3) for c in _centre_of(('probe__footprint',))))
+print("LUMP     ", tuple(round(c, 3) for c in lump))
+print("PROBE mid", tuple(round(c, 3) for c in centre_of(
+    ("probe__body", "probe__footprint", "probe__handle", "probe__cable"))))
+clip_c = centre_of(("clip__marker",))
+print("CLIP mid ", tuple(round(c, 3) for c in clip_c))
+print("CLIP-to-LUMP", round(np.linalg.norm(clip_c - lump), 4), "m")
+print("FOOTPRINT mid", tuple(round(c, 3) for c in centre_of(("probe__footprint",))))
 
-# ------------------------------------------------------------------- export
-# The page assigns its own materials per role (app_scene.js), so the source textures would
-# only add ~9 MB of image data to a file that is inlined into the HTML.
-RATIO = {'duct': 0.18, 'body': 0.82, 'muscle': 0.7, 'gland': 0.9}
-for o in bpy.data.objects:
-    if o.type != 'MESH':
-        continue
-    o.data.materials.clear()
-    role = o.name.split('__')[0]
-    r = RATIO.get(role)
-    if r:
-        bpy.context.view_layer.objects.active = o
-        md = o.modifiers.new("dec", 'DECIMATE'); md.ratio = r
-        bpy.ops.object.modifier_apply(modifier=md.name)
-        for poly in o.data.polygons:
-            poly.use_smooth = True
-bpy.ops.object.select_all(action='SELECT')
-bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', use_selection=True,
-                          export_apply=True, export_yup=True,
-                          export_image_format='AUTO')
+# dressing conform diagnostic: for each grid point the pad bottom sits 1.5mm above the skin along
+# the local normal; report the worst-case lift of that flat underside off the curved skin.
+max_pad_gap = 0.0
+gi = list(range(5))
+for i in gi:
+    for j in gi:
+        v = pad_bottom[i * 5 + j]
+        o = np.array([[v[0], v[1] + 0.02, v[2]]]); d = np.array([[0, -1, 0]])
+        locs, _t, _r = bodym.ray.intersects_location(o, d)
+        if len(locs):
+            locs = np.asarray(locs).reshape(-1, 3)
+            dd = np.linalg.norm(locs - o, axis=1)
+            jx = int(np.argmin(dd))
+            max_pad_gap = max(max_pad_gap, v[1] - locs[jx][1])
+print("DRESSING pad bottom-to-skin max distance", round(max_pad_gap, 4), "m")
+
+# --------------------------------------------------------------------- assemble scene
+# Node order matches the reference GLB exactly (24 nodes).
+ordered_names = [
+    "gland__glands",
+    "body__body", "lesion__lump",
+    "needle__shaft", "needle__bevel", "needle__guide", "needle__hub", "needle__trough",
+    "probe__footprint", "probe__body", "probe__handle", "probe__cable",
+    "clip__marker",
+    "dressing__pad", "dressing__strip",
+    "syringe__needle", "syringe__hub", "syringe__barrel", "syringe__plunger", "syringe__finger",
+    "scalpel__handle", "scalpel__blade",
+]
+
+# Internal layers must stay strictly under the skin: the source slabs are cutaway plates, and
+# wherever one reaches past the skin it reads as a red smear on the closed breast. Pull those
+# vertices in along the skin normal to 2 mm below the surface.
+from trimesh.proximity import ProximityQuery as _PQ
+_pq = _PQ(bodym)
+for _role in ("gland",):
+    _m = anatomy[_role]
+    _cp, _d, _tid = _pq.on_surface(np.asarray(_m.vertices))
+    _n = bodym.face_normals[_tid]
+    _signed = np.einsum("ij,ij->i", _m.vertices - _cp, _n)
+    _out = _signed > -0.002
+    if _out.any():
+        _m.vertices[_out] = _cp[_out] - _n[_out] * 0.002
+        _m.fix_normals()
+    print(f"CLAMP {_role}: {int(_out.sum())} of {len(_m.vertices)} verts pulled inside the skin")
+
+# Rename internal anatomy meshes to their role-prefixed node names and add the lesion sphere.
+anatomy["body__body"] = anatomy.pop("body")
+anatomy["gland__glands"] = anatomy.pop("gland")
+anatomy["lesion__lump"] = trimesh.primitives.Sphere(radius=LESION_RADIUS)
+anatomy["lesion__lump"].apply_translation(lump)
+
+def _clean(mesh):
+    """Strip any visual/material so trimesh emits no material (0 materials like the ref).
+    TEXCOORD_0 is injected manually after export (see below)."""
+    try:
+        mesh.visual = None
+    except Exception:
+        pass
+    return mesh
+
+geometries = {}
+for name in ordered_names:
+    geometries[name] = _clean(anatomy[name])
+
+scene_out = trimesh.Scene(geometry=geometries)
+
+# Export WITHOUT visuals -> clean GLB (no materials), correct header + 4-byte chunk padding.
+glb_bytes = scene_out.export(file_type=".glb", include_normals=True)
+jlen = struct.unpack("<I", glb_bytes[12:16])[0]
+j = json.loads(glb_bytes[20:20 + jlen])
+body_off = 28 + jlen  # skip 8-byte BIN chunk header
+body = bytearray(glb_bytes[body_off:])
+
+# Inject a dummy TEXCOORD_0 per primitive so every primitive has POSITION+NORMAL+TEXCOORD_0.
+# Build one shared bufferView of float32 (x,y=1) UVs, append to the binary with 4-byte padding.
+uv_chunks = []
+for mesh in j["meshes"]:
+    for prim in mesh.get("primitives", []):
+        if "TEXCOORD_0" in prim["attributes"]:
+            continue
+        pcount = j["accessors"][prim["attributes"]["POSITION"]]["count"]
+        uv = np.ones((pcount, 2), dtype=np.float32)
+        data = uv.tobytes()
+        pad = (-len(data)) % 4
+        if pad:
+            data += b" " * pad
+        view_off = len(body)
+        body += data
+        vidx = len(j["bufferViews"])
+        j["bufferViews"].append({"buffer": 0, "byteOffset": view_off, "byteLength": len(data), "target": 34962})
+        acc_idx = len(j["accessors"])
+        j["accessors"].append({
+            "bufferView": vidx, "componentType": 5126, "count": pcount, "type": "VEC2",
+        })
+        prim["attributes"]["TEXCOORD_0"] = acc_idx
+
+# Re-serialise JSON (pad to multiple of 4), reassemble GLB.
+# Update the buffer's declared byteLength to cover appended UV data.
+if j["buffers"]:
+    j["buffers"][0]["byteLength"] = len(body)
+
+new_json = json.dumps(j, separators=(",", ":")).encode("utf-8")
+jpad = (-len(new_json)) % 4
+if jpad:
+    new_json += b" " * jpad
+json_chunk = struct.pack("<II", len(new_json), 0x4E4F534A) + new_json
+bin_chunk = struct.pack("<II", len(body), 0x004E4942) + bytes(body)
+total = 12 + len(json_chunk) + len(bin_chunk)
+out_bytes = b"glTF" + struct.pack("<II", 2, total) + json_chunk + bin_chunk
+
+os.makedirs(os.path.dirname(OUT) or ".", exist_ok=True)
+with open(OUT, "wb") as fh:
+    fh.write(out_bytes)
+
 print("WROTE", OUT, os.path.getsize(OUT))
-for o in bpy.data.objects:
-    if o.type == 'MESH':
-        print("  part", o.name, len(o.data.vertices))
+for name in sorted(anatomy):
+    print("  part", name, len(anatomy[name].vertices), "verts")
