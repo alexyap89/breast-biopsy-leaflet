@@ -173,9 +173,9 @@ def apply_transform(mesh, s=1.0, rot=R_SUPINE, trans=np.zeros(3)):
     mm = np.eye(4); mm[:3, :3] = rot * s; mm[:3, 3] = trans
     return mesh.apply_transform(mm)
 
-anatomy = {"body": body, "gland": gland}   # ducts/muscle are cutaway plates: they read as
-# streaks and a flat wall once the skin is closed, so only the glandular lobules carry the
-# "inside the breast" story.
+anatomy = {"body": body}   # The asset's gland / ducts / muscle are all cutaway PLATES authored
+# for a sectioned body: inside a closed breast they read as yellow petals, red streaks and a flat
+# wall. The scene therefore ships the body, the lump and the instruments.
 for k in anatomy:
     anatomy[k] = apply_transform(anatomy[k], scale)
 
@@ -208,17 +208,17 @@ _whole.fix_normals()
 _v = np.asarray(_whole.vertices, dtype=float)
 _n = np.asarray(_whole.vertex_normals, dtype=float)
 _ax = np.abs(_v[:, 0])
-_r = np.sqrt(((_ax - 0.070) / 0.070) ** 2 + ((_v[:, 2] + 0.025) / 0.078) ** 2)
+_r = np.sqrt(((_ax - 0.070) / 0.095) ** 2 + ((_v[:, 2] + 0.028) / 0.115) ** 2)
 _w = np.where(_r < 1.0, np.cos(0.5 * np.pi * np.minimum(_r, 1.0)) ** 2, 0.0)
 _w *= np.clip((_v[:, 1] - 0.02) / 0.03, 0.0, 1.0)   # front skin only
-_v = _v + _n * (0.030 * _w)[:, None]
+_v = _v + _n * (0.020 * _w)[:, None]
 _whole.vertices = _v
 _whole.fix_normals()
 anatomy["body"] = _whole
 print("BODY mirrored to whole torso:", len(_whole.vertices), "verts, watertight", _whole.is_watertight)
 
 # --------------------------------------------------------------------- decimate
-_role_ratio = {"body": "body", "gland": "gland"}
+_role_ratio = {"body": "body"}
 for role, mesh in anatomy.items():
     r = RATIO[_role_ratio[role]]
     try:
@@ -273,25 +273,33 @@ tip = lump + (lump - entry) / np.linalg.norm(lump - entry) * 0.012
 d_axis = (tip - entry) / np.linalg.norm(tip - entry)
 
 # --------------------------------------------------------------------- needle
-bevel_base = tip - d_axis * 0.005
-anatomy["needle__shaft"] = cyl_mesh(0.0022, 0.028, direction=d_axis, center=entry - d_axis * 0.014)
-anatomy["needle__bevel"] = cyl_mesh(0.0022, 0.005, direction=d_axis,
-                                    center=bevel_base + d_axis * 0.0025)
-anatomy["needle__guide"] = cyl_mesh(0.0030, 0.026, direction=d_axis,
-                                    center=entry - d_axis * 0.005)
-anatomy["needle__hub"] = cyl_mesh(0.0050, 0.018, direction=d_axis,
-                                  center=entry - d_axis * 0.037)
+# The needle is ONE solid shaft from outside the skin, through the entry, past the lesion: the
+# previous build only had a 28 mm stub outside the skin, so once the needle was "in" there was
+# nothing to see inside the breast at all.
+_ins = np.linalg.norm(tip - entry)
+_sh_back = 0.020                     # exposed shaft outside the skin
+_sh_len = _sh_back + _ins - 0.003
+anatomy["needle__shaft"] = cyl_mesh(0.0022, _sh_len, direction=d_axis,
+                                    center=entry + d_axis * (_sh_len * 0.5 - _sh_back))
+anatomy["needle__bevel"] = cyl_mesh(0.0022, 0.010, direction=d_axis,
+                                    center=tip - d_axis * 0.005)
+anatomy["needle__guide"] = cyl_mesh(0.0030, 0.020, direction=d_axis,
+                                    center=entry - d_axis * 0.014)
+anatomy["needle__hub"] = cyl_mesh(0.0055, 0.035, direction=d_axis,
+                                  center=entry - d_axis * 0.042)
 
-# needle__trough: small box aligned to the needle axis
-through = box_mesh((0.0016, 0.0022, 0.014), direction=d_axis, center=tip - d_axis * 0.010)
-anatomy["needle__trough"] = through
+# The sample notch is part of the bevel now: a separate box bulged past the shaft radius and read
+# as a step in the needle.
+anatomy["needle__trough"] = cyl_mesh(0.0012, 0.014, direction=d_axis,
+                                     center=tip - d_axis * 0.018)
+print("NEEDLE shaft", round(_sh_len, 3), "m long,", round(_ins, 3), "m of it inside the breast")
 
 # --------------------------------------------------------------------- ultrasound probe
 # A linear-array transducer: a thin footprint resting on the anterior skin over the lump, a body
 # behind it, then handle and cable. The long axis is aligned to the needle trajectory in full 3D
 # (not just its in-plane projection) so the probe and needle lie along one line.
 GAP = 0.0012
-FOOT_LEN, FOOT_WID, FOOT_H = 0.052, 0.016, 0.004
+FOOT_LEN, FOOT_WID, FOOT_H = 0.030, 0.010, 0.004
 seat_hit = skin_at(lump[0], lump[2])
 seat_y = seat_hit[1] if seat_hit else lump[1]
 
@@ -315,10 +323,15 @@ if np.linalg.det(M) < 0:      # keep a right-handed rotation
                   [W[1], N[1], L[1]],
                   [W[2], N[2], L[2]]])
 
-# Rest the probe on the skin over the lump - the ultrasound picture the leaflet shows: the
-# transducer lies on the anterior skin with the needle passing beneath it into the lesion.
-foot_center = np.array((lump[0], seat_y, lump[2]))
-foot_center = foot_center + N * (GAP + FOOT_H * 0.5)   # bottom face just above the local skin
+# The transducer lies BESIDE the needle track, as it does in the clinic - the probe is next to the
+# needle, never on top of it - and it is seated on the skin where it actually lands, which is lower
+# on the breast than a seat taken over the lump.
+_px = lump[0] + 0.030 * W[0]
+_pz = lump[2] + 0.030 * W[2]
+_seat2 = skin_at(_px, _pz)
+if _seat2 is not None:
+    seat_y = _seat2[1]
+foot_center = np.array((_px, seat_y, _pz)) + N * (GAP + FOOT_H * 0.5)   # bottom face on the skin
 
 def orient(box, extents, center):
     mm = np.eye(4); mm[:3, :3] = M; mm[:3, 3] = center
@@ -328,20 +341,18 @@ def orient(box, extents, center):
 footprint = orient(trimesh.primitives.Box(extents=np.array([FOOT_WID, FOOT_H, FOOT_LEN])),
                    np.array([FOOT_WID, FOOT_H, FOOT_LEN]), foot_center)
 anatomy["probe__footprint"] = footprint
-body_c = foot_center + N * (FOOT_H + 0.014)
-probe_body = orient(trimesh.primitives.Box(extents=np.array([FOOT_WID * 1.15, FOOT_H * 1.3, FOOT_LEN * 0.42])),
-                    np.array([FOOT_WID * 1.15, FOOT_H * 1.3, FOOT_LEN * 0.42]), body_c)
-anatomy["probe__body"] = probe_body
-
-# handle: off the skin (+normal), tilted toward the head/deep end; cable follows.
-hd_dir = np.array([N[0] + L[0], N[1] + L[1], N[2] + L[2]])
-hd_dir = hd_dir / np.linalg.norm(hd_dir)
-hd_start = foot_center + N * 0.03
-hd_end = hd_start + hd_dir * 0.085
-anatomy["probe__handle"] = cyl_mesh(0.013, 0.085, direction=(hd_end - hd_start), center=hd_start)
-cb_dir = np.array([N[0] + 0.5 * L[0], N[1] + 0.5 * L[1], N[2] + 0.5 * L[2]])
-cb_dir = cb_dir / np.linalg.norm(cb_dir)
-anatomy["probe__cable"] = cyl_mesh(0.006, 0.070, direction=cb_dir, center=hd_end)
+# The head is a plain rectangular block - a flat face on the skin, a boxy body, a short grip -
+# because the tapered hull read as an unrecognisable dark lump at page scale.  A transducer is a
+# rectangular object and should look like one.
+_base = foot_center + N * (FOOT_H * 0.5)
+_up = N * 0.026
+_head_dims = np.array([0.022, 0.026, 0.040])          # across W, up N, along L
+_head_c = _base + _up * 0.5
+anatomy["probe__body"] = orient(trimesh.primitives.Box(extents=_head_dims), _head_dims, _head_c)
+hd_start = _base + _up - N * 0.006
+hd_end = hd_start + N * 0.042
+anatomy["probe__handle"] = cyl_mesh(0.0100, 0.042, direction=N, center=hd_start + N * 0.021)
+anatomy["probe__cable"] = cyl_mesh(0.0035, 0.026, direction=N, center=hd_end + N * 0.013)
 
 print("PROBE footprint", FOOT_LEN, "x", FOOT_WID, "m | seat y", round(seat_y, 4),
       "| long-axis||needle:", round(abs(np.cross(d_axis, L)).sum(), 4))
@@ -381,55 +392,43 @@ torus.apply_transform(R_clip)
 anatomy["clip__marker"] = torus
 
 # --------------------------------------------------------------------- dressing conform pad
-# Conforming pad: a 5x5 grid of -Y skin raycasts around the entry. Each bottom vertex sits 1.5 mm
-# off the skin along its OWN surface normal, each top vertex 2.2 mm further out - so the pad follows
-# the breast's curvature instead of floating on a flat plane.
-PAD_R = 0.024
-PAD_T = 0.0035
+# Dressing: a small conforming pad - 20 x 16 mm, 7 x 7 grid, each vertex anchored 1.5 mm above
+# the skin along its own normal and 2 mm thick.  A flat plate cannot follow the underside of the
+# breast (its downhill corner lifted 25 mm), and the old 48 mm 5 x 5 shell read as a patchy scuff:
+# this is small enough to read as a dressing and fine enough not to facet.
+PAD_W, PAD_L, PAD_T = 0.010, 0.008, 0.0020
 n_entry = np.asarray(entry_hit[2], dtype=float) if entry_hit else np.array([0.0, 1.0, 0.0])
 n_entry = n_entry / max(1e-9, np.linalg.norm(n_entry))
+_n = 7
 bottom_pts, top_pts = [], []
-grid = np.linspace(-PAD_R, PAD_R, 5)
-for gx in grid:
-    for gy in grid:
-        h = skin_at(entry[0] + gx, entry[2] + gy)
-        sy = h[1] if h else entry_y
-        nr = np.asarray(h[2], dtype=float) if h else n_entry
-        nr = nr / max(1e-9, np.linalg.norm(nr))
-        p = np.array((entry[0] + gx, sy, entry[2] + gy))
-        bottom_pts.append(p + nr * 0.0015)
-        top_pts.append(p + nr * (0.0015 + PAD_T))
+for _gx in np.linspace(-PAD_W, PAD_W, _n):
+    for _gz in np.linspace(-PAD_L, PAD_L, _n):
+        _h = skin_at(entry[0] + _gx, entry[2] + _gz)
+        _sy = _h[1] if _h else entry_y
+        _nr = np.asarray(_h[2], dtype=float) if _h else n_entry
+        _nr = _nr / max(1e-9, np.linalg.norm(_nr))
+        _p = np.array((entry[0] + _gx, _sy, entry[2] + _gz))
+        bottom_pts.append(_p + _nr * 0.0015)
+        top_pts.append(_p + _nr * (0.0015 + PAD_T))
 pad_bottom = np.array(bottom_pts)
 pad_top = np.array(top_pts)
 
-n = 5
-nn = n * n
+_nn = _n * _n
 faces = []
-for i in range(n - 1):
-    for j in range(n - 1):
-        a = i * n + j; b = a + 1; c = a + n; d = c + 1
-        faces += [[a + nn, b + nn, d + nn], [a + nn, d + nn, c + nn]]   # outer sheet
-        faces += [[a, d, b], [a, c, d]]                                # skin-side sheet
-border = ([k * n for k in range(n)] + [k * n + n - 1 for k in range(1, n)]
-          + [(n - 1) * n + k for k in range(n - 2, -1, -1)] + [k for k in range(n - 2, 0, -1)])
+for i in range(_n - 1):
+    for j in range(_n - 1):
+        a = i * _n + j; b = a + 1; c = a + _n; d = c + 1
+        faces += [[a + _nn, b + _nn, d + _nn], [a + _nn, d + _nn, c + _nn]]   # outer sheet
+        faces += [[a, d, b], [a, c, d]]                                      # skin-side sheet
+border = ([k * _n for k in range(_n)] + [k * _n + _n - 1 for k in range(1, _n)]
+          + [(_n - 1) * _n + k for k in range(_n - 2, -1, -1)] + [k for k in range(_n - 2, 0, -1)])
 for u, v in zip(border, border[1:] + border[:1]):
-    bu, bv, tu, tv = u, v, u + nn, v + nn
-    faces += [[bu, bv, tv], [bu, tv, tu]]
+    faces += [[u, v, v + _nn], [u, v + _nn, u + _nn]]
 
-pad_verts = np.concatenate([pad_bottom, pad_top], axis=0)
-dressing_pad = trimesh.Trimesh(pad_verts, np.array(faces, dtype=np.int64))
+dressing_pad = trimesh.Trimesh(np.concatenate([pad_bottom, pad_top]),
+                               np.array(faces, dtype=np.int64))
 dressing_pad.merge_vertices(); dressing_pad.fix_normals()
 anatomy["dressing__pad"] = dressing_pad
-
-# dressing__strip rides on the pad: thin box lying in the skin plane (long along W, thin along N)
-strip_center = pad_top.mean(0) + n_entry * 0.0008
-Mstrip = np.array([[W[0], N[0], L[0]],
-                   [W[1], N[1], L[1]],
-                   [W[2], N[2], L[2]]])
-strip = trimesh.primitives.Box(extents=np.array([PAD_R * 1.9, 0.0016, PAD_R * 0.55]))
-mm = np.eye(4); mm[:3, :3] = Mstrip; mm[:3, 3] = strip_center
-strip.apply_transform(mm)
-anatomy["dressing__strip"] = strip
 
 # --------------------------------------------------------------------- local anaesthetic syringe
 s_tip = entry.copy()
@@ -470,31 +469,19 @@ print("CLIP mid ", tuple(round(c, 3) for c in clip_c))
 print("CLIP-to-LUMP", round(np.linalg.norm(clip_c - lump), 4), "m")
 print("FOOTPRINT mid", tuple(round(c, 3) for c in centre_of(("probe__footprint",))))
 
-# dressing conform diagnostic: for each grid point the pad bottom sits 1.5mm above the skin along
-# the local normal; report the worst-case lift of that flat underside off the curved skin.
-max_pad_gap = 0.0
-gi = list(range(5))
-for i in gi:
-    for j in gi:
-        v = pad_bottom[i * 5 + j]
-        o = np.array([[v[0], v[1] + 0.02, v[2]]]); d = np.array([[0, -1, 0]])
-        locs, _t, _r = bodym.ray.intersects_location(o, d)
-        if len(locs):
-            locs = np.asarray(locs).reshape(-1, 3)
-            dd = np.linalg.norm(locs - o, axis=1)
-            jx = int(np.argmin(dd))
-            max_pad_gap = max(max_pad_gap, v[1] - locs[jx][1])
-print("DRESSING pad bottom-to-skin max distance", round(max_pad_gap, 4), "m")
+# dressing diagnostic: worst bottom-vertex gap between the pad and the skin
+from trimesh.proximity import ProximityQuery as _PQ2
+_cp2, _d2, _t2 = _PQ2(bodym).on_surface(pad_bottom)
+print("DRESSING pad bottom-to-skin max distance", round(float(np.max(_d2)), 4), "m")
 
 # --------------------------------------------------------------------- assemble scene
 # Node order matches the reference GLB exactly (24 nodes).
 ordered_names = [
-    "gland__glands",
     "body__body", "lesion__lump",
     "needle__shaft", "needle__bevel", "needle__guide", "needle__hub", "needle__trough",
     "probe__footprint", "probe__body", "probe__handle", "probe__cable",
     "clip__marker",
-    "dressing__pad", "dressing__strip",
+    "dressing__pad",
     "syringe__needle", "syringe__hub", "syringe__barrel", "syringe__plunger", "syringe__finger",
     "scalpel__handle", "scalpel__blade",
 ]
@@ -504,7 +491,7 @@ ordered_names = [
 # vertices in along the skin normal to 2 mm below the surface.
 from trimesh.proximity import ProximityQuery as _PQ
 _pq = _PQ(bodym)
-for _role in ("gland",):
+for _role in ():
     _m = anatomy[_role]
     _cp, _d, _tid = _pq.on_surface(np.asarray(_m.vertices))
     _n = bodym.face_normals[_tid]
@@ -517,7 +504,6 @@ for _role in ("gland",):
 
 # Rename internal anatomy meshes to their role-prefixed node names and add the lesion sphere.
 anatomy["body__body"] = anatomy.pop("body")
-anatomy["gland__glands"] = anatomy.pop("gland")
 anatomy["lesion__lump"] = trimesh.primitives.Sphere(radius=LESION_RADIUS)
 anatomy["lesion__lump"].apply_translation(lump)
 

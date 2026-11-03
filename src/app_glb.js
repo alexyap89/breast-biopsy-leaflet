@@ -102,7 +102,7 @@ const ROLE_COL={
   muscle:0x9d4a44,      // pectoralis, deeper and duller than the ducts
   gland:0xf0c98a,       // breast glandular tissue
   lesion:0xb8323c,      // the lump the page is about
-  probe:0x3d4553,       // ultrasound probe, dark slate
+  probe:0x7d8a99,       // ultrasound probe, mid slate (a near-black block read as a brick)
   needle:0xf2f5f8,      // needle and marker clip, near-white metal
   clip:0xc9ced6,
   scalpel:0xd7dbe2,     // small scalpel used for the skin nick

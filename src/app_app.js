@@ -658,15 +658,10 @@
     /* ---------- probe and needle ----------------------------------------- */
     P.probe.visible = A.probe>0.03;
     P.probe.position.y = (A.probe>0.05 && !RM ? 0.0015*Math.sin(now/260) : 0);
-    /* The probe rests over the needle track. While the biopsy needle is in (A.needle > 0.5) an
-       opaque probe is a dark block that hides the needle, so fade it to a translucent shell so
-       the needle reads through it, and restore it once the needle is withdrawn. */
-    const probeSeeThrough = A.needle > 0.5;
+    /* The probe is solid at every step: it lies BESIDE the needle track in the model, so it no
+       longer has to go see-through to keep the needle readable. */
     if(P.probeMats) P.probeMats.forEach(m=>{
-      m.transparent = probeSeeThrough;
-      m.opacity = probeSeeThrough ? 0.30 : 1.0;
-      m.depthWrite = !probeSeeThrough;
-      m.needsUpdate = true;
+      if(m.transparent || m.opacity !== 1.0){ m.transparent = false; m.opacity = 1.0; m.needsUpdate = true; }
     });
     const active = A.needle>0.02 || A.passes>0.02;
     P.needle.visible = active;
