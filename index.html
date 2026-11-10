@@ -1477,7 +1477,7 @@ function buildThreeScene(THREE, root){
 
     /* ---------- probe and needle ----------------------------------------- */
     P.probe.visible = A.probe>0.03;
-    P.probe.position.y = (A.probe>0.05 && !RM ? 0.0015*Math.sin(now/260) : 0);
+    P.probe.position.y = (P.probe.userData.y0||0) + (A.probe>0.05 && !RM ? 0.0015*Math.sin(now/260) : 0);
     /* The probe is solid at every step: it lies BESIDE the needle track in the model, so it no
        longer has to go see-through to keep the needle readable. */
     if(P.probeMats) P.probeMats.forEach(m=>{
@@ -1610,6 +1610,24 @@ function buildThreeScene(THREE, root){
     setInterval(()=>{ if(performance.now()-lastRaf>250) step(performance.now()); },33); }
 
   scene.updateMatrixWorld(true);
+  /* probe: centre the footprint over the lesion and seat it on the curved skin */
+  (function seatProbe(){
+    try{
+      const P=T.parts.probe, L=T.anchors.LUMP_WORLD; if(!P||!L) return;
+      let foot=null; P.traverse(o=>{ if(o.isMesh && o.name.indexOf('foot')>=0) foot=o; });
+      if(!foot) return;
+      const rc=new THREE.Raycaster(), bm=[];
+      T.parts.body.traverse(o=>{ if(o.isMesh) bm.push(o); });
+      const surf=(x,y)=>{ rc.set(new THREE.Vector3(x,y,-0.5), new THREE.Vector3(0,0,1)); let b=1e9;
+        bm.forEach(m=>{ const h=rc.intersectObject(m,true); h.forEach(x2=>{ if(x2.point.z<b) b=x2.point.z; }); });
+        return b>1e8 ? null : b; };
+      const f0=new THREE.Box3().setFromObject(foot);
+      P.position.x += L.x-(f0.min.x+f0.max.x)/2;
+      P.userData.y0 = L.y-(f0.min.y+f0.max.y)/2; P.position.y = P.userData.y0;
+      const f1=new THREE.Box3().setFromObject(foot), z1=surf(L.x,L.y);
+      if(z1!==null) P.position.z += (z1-0.0012)-f1.min.z;
+    }catch(e){}
+  })();
   setStep(0);
   requestAnimationFrame(frame);
   startWatchdog();
