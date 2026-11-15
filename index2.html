@@ -626,12 +626,12 @@ const I18N={"en":{"html":{"k01":"Larger text","k02":"High contrast","k03":"Print
     if(!node){
       if(m.kind==='vid'){
         node=document.createElement('video');
-        node.src=m.src; node.muted=true; node.playsInline=true; node.loop=true;
+        node.src=m.src; node.muted=true; node.playsInline=true; node.loop=true; node.preload='auto';
         if(m.poster) node.poster=m.poster;
         node.setAttribute('aria-hidden','true');
       } else {
         node=document.createElement('img');
-        node.src=m.src; node.alt=m.alt||''; node.loading='lazy';
+        node.src=m.src; node.alt=m.alt||'';
         node.decoding='async';
       }
       node.className='mediaEl';
