@@ -1,0 +1,199 @@
+/* Breast core-biopsy leaflet — MEDIA edition stage app.
+   Same step machine, audio and i18n as the 3D page; the canvas is replaced by a
+   media stage: each step shows a graded still (JPG) or a drawn SVG diagram, and
+   video beats play a short muted clip when present. */
+(() => {
+  const stage = document.getElementById('mediaStage');
+  const chips = document.getElementById('steps');
+  const label = document.getElementById('stepLabel');
+  const note = document.getElementById('stepNote');
+  const srText = document.getElementById('srText');
+  const stepCount = document.getElementById('stepCount');
+  const btnPlay = document.getElementById('btnPlay');
+  const langPick = document.getElementById('langPick');
+  const btnSound = document.getElementById('btnSound');
+
+  /* media: kind = 'img' | 'svg' | 'vid'; vid falls back to img while loading */
+  const STEPS = [
+    {t:"Your breast and the lump",
+     n:"The lump your doctor wants to check is inside your breast. Most breast lumps are not cancer, but a sample is the only way to know for certain.",
+     media:{kind:'svg', src:'assets/b1_anatomy.svg', alt:"Side-view diagram of the breast showing the lump sitting inside the breast tissue, above the chest muscle."}},
+    {t:"Finding the lump with ultrasound",
+     n:"You lie on your back with your arm above your head. The doctor moves an ultrasound probe over the skin, and the screen shows the lump, where it sits and how deep it is.",
+     media:{kind:'vid', src:'assets/m2_probe_glide.mp4', poster:'assets/b2_probe.jpg', alt:"A sterile-sleeved ultrasound probe glides over the skin with a little clear gel, guided by a gloved hand."}},
+    {t:"Cleaning the skin",
+     n:"The skin over the lump is cleaned and the area is covered with a sterile drape. That is all this step involves, and it takes a moment.",
+     media:{kind:'vid', src:'assets/m3_drape.mp4', poster:'assets/b3_drape.jpg', alt:"Gloved hands unfold a light-blue sterile drape and bring it gently toward you."}},
+    {t:"Numbing the area",
+     n:"Local anaesthetic is injected into the skin and deeper into the breast. It stings for a few seconds, and then the area goes numb. You stay awake the whole time.",
+     media:{kind:'img', src:'assets/b4_lido.jpg', alt:"The masked, capped clinician leans over holding a folded stack of white sterile gauze, reaching gently down toward the blue drape."}},
+    {t:"A small nick in the skin",
+     n:"The anaesthetic has taken effect and the skin is numb. A tiny nick is made in the skin at the spot the needle will enter, so the biopsy needle passes through cleanly.",
+     media:{kind:'img', src:'assets/b5_mark.jpg', alt:"A blue-gloved hand touches a violet marking pen to the light-blue sterile drape."}},
+    {t:"The biopsy needle goes in",
+     n:"The biopsy needle is introduced under ultrasound guidance and guided into the lump. Each time the device fires, a thin core of tissue is taken; the needle is drawn back and re-introduced until enough tissue has been collected.",
+     media:{kind:'img', src:'assets/b6_probe.jpg', alt:"A blue-gloved hand rests a grey ultrasound probe with coiled cable on the light-blue sterile drape."}},
+    {t:"The marker clip",
+     n:"A very small clip is left at the spot, so the area can be found again later. You cannot feel it, and it is safe to have an MRI scan with it in place.",
+     media:{kind:'svg', src:'assets/b7_clip.svg', alt:"Side-view diagram: a marker clip about four millimetres across is left at the sampling spot; a magnified inset shows the clip."}},
+    {t:"Pressure, then a dressing",
+     n:"Firm pressure is held over the spot to stop any bleeding, then a dressing is applied. It stays on, and stays dry, for 48 hours.",
+     media:{kind:'img', src:'assets/b8_dressing.jpg', alt:"A single blue-gloved hand rests on a folded stack of white sterile gauze lying flat on the light-blue drape, a roll of pale tape beside it."}},
+    {t:"Afterwards, and your results",
+     n:"The numbness wears off within a few hours. Soreness and bruising settle over a few days to two weeks. Use paracetamol if you need it, not ibuprofen or aspirin. Results usually take about two weeks.",
+     media:{kind:'img', src:'assets/b9_after.jpg', alt:"From below, the masked, capped clinician looks down with a warm smile and a reassuring nod; a band of blue drape runs along the bottom of the frame."}},
+  ];
+
+  let cur=0, playing=false, guided=false, timer=null, curClip=null;
+  const clipCache={}, mediaCache={};
+
+  /* --- media stage -------------------------------------------------------- */
+  function mountMedia(step){
+    const m=step.media;
+    let node=mediaCache[m.src];
+    if(!node){
+      if(m.kind==='vid'){
+        node=document.createElement('video');
+        node.src=m.src; node.muted=true; node.playsInline=true; node.loop=true;
+        if(m.poster) node.poster=m.poster;
+        node.setAttribute('aria-hidden','true');
+      } else {
+        node=document.createElement('img');
+        node.src=m.src; node.alt=m.alt||''; node.loading='lazy';
+        node.decoding='async';
+      }
+      node.className='mediaEl';
+      mediaCache[m.src]=node;
+    }
+    node.alt = (m.kind==='vid') ? '' : (m.alt||'');
+    while(stage.firstChild) stage.removeChild(stage.firstChild);
+    stage.appendChild(node);
+    if(m.kind==='vid'){ node.currentTime=0; const p=node.play(); if(p&&p.catch)p.catch(()=>{}); }
+    stage.setAttribute('aria-label', m.alt||'');
+  }
+
+  STEPS.forEach((s,i)=>{
+    const b=document.createElement('button');
+    b.className='stepchip'; b.setAttribute('role','tab');
+    b.textContent=(i+1)+'. '+s.t;
+    b.onclick=()=>{ stopPlay(); setStep(i); };
+    chips.appendChild(b);
+  });
+
+  function setStep(i){
+    cur=i; const s=STEPS[i];
+    mountMedia(s);
+    label.innerHTML='<b>Step '+(i+1)+' of '+STEPS.length+'.</b> '+s.t;
+    note.textContent=s.n;
+    srText.textContent='Step '+(i+1)+' of '+STEPS.length+'. '+s.t+'. '+s.n;
+    stepCount.textContent=(i+1)+' / '+STEPS.length;
+    refreshNav();
+    [...chips.children].forEach((c,j)=>c.setAttribute('aria-current',String(j===i)));
+    if(audioOn) playStepAudio(i);
+  }
+  function stopPlay(){ playing=false; guided=false; clearTimeout(timer); stopClip(); if(btnPlay) btnPlay.textContent='▶ Play all'; }
+  function stopClip(){ if(curClip){ try{curClip.pause();}catch(_){} curClip=null; } }
+
+  const btnPrev=document.getElementById('btnPrev');
+  const btnNext=document.getElementById('btnNext');
+  function refreshNav(){
+    const atFirst=cur<=0, atLast=cur>=STEPS.length-1;
+    if(btnPrev){ btnPrev.disabled=atFirst; btnPrev.setAttribute('aria-disabled',String(atFirst)); }
+    if(btnNext){ btnNext.disabled=atLast; btnNext.setAttribute('aria-disabled',String(atLast)); }
+  }
+  function prevStep(){ stopPlay(); if(cur>0) setStep(cur-1); }
+  function nextStep(){ stopPlay(); if(cur>0||true){ if(cur<STEPS.length-1) setStep(cur+1); } }
+  if(btnPrev) btnPrev.onclick=prevStep;
+  if(btnNext) btnNext.onclick=nextStep;
+
+  btnPlay && btnPlay.addEventListener('click',()=>{
+    if(playing){ stopPlay(); return; }
+    playing=true; guided=true; btnPlay.textContent='⏸ Pause';
+    setStep(cur>=STEPS.length-1?0:cur);
+  });
+  function clipEnd(){ if(guided){ if(cur>=STEPS.length-1){ stopPlay(); } else { setStep(cur+1); } } }
+
+  /* --- audio (identical contract to the 3D page) --------------------------- */
+  let audioOn=false;
+  const localeBroken={};
+  function localeSrc(code,i){
+    if(!code || code==='en' || localeBroken[code]) return null;
+    if(typeof AUDIO_LOCALES==='undefined') return null;
+    const set=AUDIO_LOCALES[code];
+    return (set && set[String(i+1)]) || null;
+  }
+  function getClip(i){
+    const code=document.documentElement.lang||'en';
+    const key=code+':'+i;
+    if(clipCache[key]) return clipCache[key];
+    const src=localeSrc(code,i);
+    if(src){
+      const a=new Audio(); a.src=src;
+      a.addEventListener('ended',clipEnd);
+      a.addEventListener('error',()=>{ localeBroken[code]=true; delete clipCache[key]; if(curClip===a) playStepAudio(i); });
+      clipCache[key]=a; return a;
+    }
+    try{
+      const entry=(typeof AUDIO!=='undefined')?AUDIO[String(i+1)]:undefined;
+      if(!entry) return null;
+      const mime=(typeof AUDIO!=='undefined'&&AUDIO.mime)?AUDIO.mime:'audio/mpeg';
+      const bin=atob(entry.b64), n=bin.length, arr=new Uint8Array(n);
+      for(let j=0;j<n;j++) arr[j]=bin.charCodeAt(j);
+      const a=new Audio(); a.src=URL.createObjectURL(new Blob([arr],{type:mime}));
+      a.addEventListener('ended',clipEnd);
+      clipCache[key]=a; return a;
+    }catch(_){ return null; }
+  }
+  function playStepAudio(i){
+    stopClip();
+    const a=getClip(i); if(!a) return false;
+    try{ a.currentTime=0; }catch(_){}
+    const p=a.play(); if(p&&p.catch) p.catch(()=>{});
+    curClip=a; return true;
+  }
+  btnSound && btnSound.addEventListener('click',()=>{
+    audioOn=!audioOn;
+    btnSound.setAttribute('aria-pressed',String(audioOn));
+    btnSound.textContent=audioOn?'🔇 Sound off':'🔊 Sound on';
+    if(audioOn){ playStepAudio(cur); } else { stopClip(); }
+  });
+
+  /* --- i18n (same I18N table as the 3D page) -------------------------------- */
+  const EN_TXT={};
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ EN_TXT[el.dataset.i18n]=el.textContent; });
+  const EN_STEPS=STEPS.map(s=>({t:s.t,n:s.n}));
+  let lang='en';
+  function setText(el,v){ if(el) el.textContent=v; }
+  function stepLabel(cat,n,m){
+    const t=(cat&&cat.html&&cat.html.k80)||EN_TXT.k80||'Step {n} of {m}.';
+    return t.replace('{n}',n).replace('{m}',m);
+  }
+  function applyLang(code){
+    lang=code;
+    const cat=(code!=='en'&&typeof I18N!=='undefined'&&I18N[code])?I18N[code]:null;
+    document.querySelectorAll('[data-i18n]').forEach(el=>{
+      const v=cat&&cat.html?cat.html[el.dataset.i18n]:null;
+      setText(el, v||EN_TXT[el.dataset.i18n]||el.textContent);
+    });
+    STEPS.forEach((s,i)=>{
+      const tr=cat&&cat.steps?cat.steps['step'+String(i+1).padStart(2,'0')]:null;
+      s.t=(tr&&tr.t)||EN_STEPS[i].t; s.n=(tr&&tr.n)||EN_STEPS[i].n;
+    });
+    [...chips.children].forEach((b,i)=>{ b.textContent=(i+1)+'. '+STEPS[i].t; });
+    document.documentElement.lang=code;
+    setStep(cur);
+    if(langPick) langPick.value=code;
+  }
+  langPick && langPick.addEventListener('change',()=>{ applyLang(langPick.value); if(audioOn) playStepAudio(cur); else stopClip(); });
+
+  document.addEventListener('keydown',e=>{
+    let handled=false;
+    if(e.key==='ArrowLeft'){ prevStep(); handled=true; }
+    else if(e.key==='ArrowRight'){ nextStep(); handled=true; }
+    else if(e.key==='Home'){ stopPlay(); setStep(0); handled=true; }
+    else if(e.key==='End'){ stopPlay(); setStep(STEPS.length-1); handled=true; }
+    if(handled) e.preventDefault();
+  });
+
+  setStep(0);
+})();

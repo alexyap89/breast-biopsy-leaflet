@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1344" height="768" viewBox="0 0 1344 768" font-family="Avenir Next, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#071b2c"/><stop offset="1" stop-color="#04121f"/>
+    </linearGradient>
+    <linearGradient id="gland" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8b4a0"/><stop offset="1" stop-color="#d99a82"/>
+    </linearGradient>
+  </defs>
+  <rect width="1344" height="768" fill="url(#bg)"/>
+  <rect x="120" y="640" width="1104" height="90" rx="24" fill="#3d5a75"/>
+  <g fill="#4d6c88">
+    <rect x="180" y="648" width="120" height="74" rx="20"/><rect x="360" y="648" width="120" height="74" rx="20"/>
+    <rect x="540" y="648" width="120" height="74" rx="20"/><rect x="720" y="648" width="120" height="74" rx="20"/>
+    <rect x="900" y="648" width="120" height="74" rx="20"/><rect x="1080" y="648" width="120" height="74" rx="20"/>
+  </g>
+  <path d="M140 560 Q672 505 1204 560 L1204 640 Q672 610 140 640 Z" fill="#a34e4e"/>
+  <path d="M140 560 Q200 250 560 165 Q900 105 1204 235 L1204 560 Q672 505 140 560 Z"
+        fill="#f2d3bd" stroke="#f7e6d4" stroke-width="6"/>
+  <path d="M165 540 Q225 275 565 195 Q890 140 1184 260 L1184 320 Q890 205 585 255 Q280 330 210 545 Z" fill="#f6e3cf" opacity="0.75"/>
+  <g fill="url(#gland)" opacity="0.9">
+    <ellipse cx="450" cy="430" rx="120" ry="80"/><ellipse cx="620" cy="380" rx="135" ry="90"/>
+    <ellipse cx="800" cy="360" rx="130" ry="85"/><ellipse cx="960" cy="390" rx="115" ry="78"/>
+    <ellipse cx="530" cy="510" rx="110" ry="62"/><ellipse cx="720" cy="490" rx="125" ry="66"/>
+    <ellipse cx="905" cy="495" rx="110" ry="60"/>
+  </g>
+  <!-- sample cavity where the lump was, with the clip left behind -->
+  <ellipse cx="700" cy="415" rx="58" ry="44" fill="#b98383" opacity="0.8"/>
+  <ellipse cx="700" cy="415" rx="58" ry="44" fill="none" stroke="#9fb6c9" stroke-width="3" stroke-dasharray="3 9"/>
+  <!-- marker clip: tiny V-shaped titanium tag, magnified inset -->
+  <g transform="translate(700 415)">
+    <path d="M-16 -10 L0 12 L16 -10" fill="none" stroke="#ffd35e" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <circle cx="700" cy="415" r="86" fill="none" stroke="#ffd35e" stroke-width="3" stroke-dasharray="4 10" opacity="0.85"/>
+  <!-- magnifier -->
+  <circle cx="1040" cy="270" r="105" fill="#0b2438" stroke="#ffd35e" stroke-width="4"/>
+  <path d="M1040 375 L1040 375" />
+  <line x1="968" y1="345" x2="790" y2="452" stroke="#ffd35e" stroke-width="2.5" opacity="0.7"/>
+  <line x1="1092" y1="352" x2="812" y2="470" stroke="#ffd35e" stroke-width="2.5" opacity="0.7"/>
+  <g transform="translate(1040 270) scale(3.4)">
+    <path d="M-16 -10 L0 12 L16 -10" fill="none" stroke="#ffd35e" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="1040" y="205" fill="#ffd35e" font-size="30" font-weight="700" text-anchor="middle">marker clip</text>
+  <text x="1040" y="425" fill="#cdbfa0" font-size="24" text-anchor="middle">about 4 mm — you cannot feel it,</text>
+  <text x="1040" y="455" fill="#cdbfa0" font-size="24" text-anchor="middle">and MRI scans are safe with it in place</text>
+  <text x="452" y="300" fill="#5d4636" font-size="26" font-weight="600" transform="rotate(-20 452 300)">the small space left after sampling</text>
+  <text x="672" y="750" fill="#7fa8c8" font-size="24" text-anchor="middle">side-view diagram — a marker clip is left at the spot so it can be found again later</text>
+</svg>
