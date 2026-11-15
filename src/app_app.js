@@ -196,16 +196,18 @@
 
   function stopClip(){ if(curClip){ try{curClip.pause();}catch(_){} curClip=null; } }
 
-  /* One clip per step per language. English is inlined (AUDIO); every other locale ships as
-     audio/<code>/leaflet/stepNN.mp3 beside the page (AUDIO_LOCALES), because six locales
-     inlined would add ~10 MB of base64. A missing or failing locale clip marks that language
-     broken and falls back to the English clip rather than going silent. */
+  /* One clip per step per language. Every locale ships as audio/<code>/leaflet/stepNN.mp3
+     beside the page (AUDIO_LOCALES) and is fetched on demand: an inlined mp3 costs its full
+     size on the wire (mp3 will not gzip), so the default build carries none — see
+     tools/build.py --standalone, which additionally inlines the English set (AUDIO) so a
+     downloaded single file still speaks. A missing or failing locale clip marks that language
+     broken and falls back to an inlined clip if the build has one rather than going silent. */
   const localeBroken={};
 
   function clipEnd(){ if(guided){ if(cur>=STEPS.length-1){ stopPlay(); } else { setStep(cur+1); } } }
 
   function localeSrc(code,i){
-    if(!code || code==='en' || localeBroken[code]) return null;
+    if(!code || localeBroken[code]) return null;
     if(typeof AUDIO_LOCALES==='undefined') return null;
     const set=AUDIO_LOCALES[code];
     return (set && set[String(i+1)]) || null;

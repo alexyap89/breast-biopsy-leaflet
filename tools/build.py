@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Assemble index.html from src/ fragments, inlining the model and the audio.
 
-    python3 tools/build.py            rebuild index.html
+    python3 tools/build.py            rebuild index.html (all narration lazy)
     python3 tools/build.py --check    rebuild and diff against the current file
     python3 tools/build.py --out P    write to P instead of index.html
+    python3 tools/build.py --standalone
+                                      also inline the nine English clips so the
+                                      single downloaded file still speaks; this
+                                      adds ~0.86 MB of base64 to the document,
+                                      which is why the hosted build does not
 
 Fragments (src/, produced by tools/split.py):
     head.html     markup + CSS
@@ -18,7 +23,9 @@ join is byte-exact against the file split.py read.
 
 Injected, never hand-edited:
     const GLB_B64='...'      from manifest["model"]
-    const AUDIO={...}        from manifest["audio_glob"], only if files match
+    const AUDIO={...}        from manifest["audio_glob"], only with --standalone
+    const AUDIO_LOCALES={...} file paths for every locale's clips (all but en
+                             in the default build; en ships inline only then)
 
 GLB_B64 is written into the fragment slot that split.py extracted by replacing
 the existing `const GLB_B64='...'` assignment in app_glb.js. AUDIO is inserted
@@ -78,18 +85,20 @@ def audio_literal(manifest):
     return body, total
 
 
-def locale_audio_literal(manifest):
+def locale_audio_literal(manifest, standalone=False):
     """List each non-English locale's clips as file paths instead of inlining them.
 
-    English stays inlined in AUDIO so a downloaded single file still speaks. Six locales
-    inlined would add roughly 10 MB of base64 to a 3.3 MB page, so the rest ship as
-    `audio/<locale>/leaflet/stepNN.mp3` beside the page and are fetched on demand.
+    Inlining six locales would add roughly 10 MB of base64 to a 3.3 MB page, so every
+    locale — English included — ships as `audio/<locale>/leaflet/stepNN.mp3` beside the
+    page and is fetched on demand; the hosted wire budget is gzip bytes, and an inlined
+    mp3 block costs almost exactly its file size. With standalone=True English is left
+    out of this table because --standalone inlines it in AUDIO instead.
     """
     pat = re.compile(r"^step(\d{2})\.mp3$")
     table = {}
     for path in sorted(glob.glob(os.path.join(ROOT, "audio", "*", "leaflet", "*.mp3"))):
         code = os.path.relpath(path, ROOT).split(os.sep)[1]
-        if code == "en":
+        if code == "en" and standalone:
             continue
         m = pat.match(os.path.basename(path))
         if not m or os.path.getsize(path) == 0:
@@ -121,7 +130,7 @@ def i18n_literal(manifest):
     return b"const I18N=" + payload + b";\n"
 
 
-def assemble(manifest, with_audio=True):
+def assemble(manifest, with_audio=True, standalone=False):
     head_top = read(manifest["files"]["head_top"])
     css = read(manifest["files"]["css"])
     head_body = read(manifest["files"]["head_body"])
@@ -137,8 +146,8 @@ def assemble(manifest, with_audio=True):
         raise SystemExit(f"app_glb.js: found {n} GLB_B64 assignments, expected 1")
     glb = glb_new
 
-    audio, audio_bytes = audio_literal(manifest) if with_audio else (b"", 0)
-    locales = locale_audio_literal(manifest) if with_audio else b""
+    audio, audio_bytes = audio_literal(manifest) if (with_audio and standalone) else (b"", 0)
+    locales = locale_audio_literal(manifest, standalone) if with_audio else b""
     i18n = i18n_literal(manifest)
 
     parts = [head_top, STYLE_OPEN.encode(), css, STYLE_CLOSE.encode(),
@@ -162,9 +171,11 @@ def main():
     check = "--check" in sys.argv
     target = os.path.join(ROOT, "index.html")
 
+    standalone = "--standalone" in sys.argv
+
     if "--out" in sys.argv:
         target = sys.argv[sys.argv.index("--out") + 1]
-        out, audio_bytes = assemble(manifest)
+        out, audio_bytes = assemble(manifest, standalone=standalone)
         with open(target, "wb") as fh:
             fh.write(out)
         print(f"wrote {target}  {len(out)} bytes  (audio {audio_bytes / 1e6:.2f} MB)")
@@ -193,11 +204,12 @@ def main():
                 break
         return 1
 
-    out, audio_bytes = assemble(manifest)
+    out, audio_bytes = assemble(manifest, standalone=standalone)
     with open(target, "wb") as fh:
         fh.write(out)
     print(f"wrote index.html  {len(out)} bytes  (audio inlined "
-          f"{audio_bytes / 1e6:.2f} MB, model {manifest['model']})")
+          f"{audio_bytes / 1e6:.2f} MB, model {manifest['model']}"
+          f"{', standalone' if standalone else ''})")
     return 0
 
 
