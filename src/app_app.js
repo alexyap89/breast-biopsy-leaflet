@@ -63,12 +63,20 @@
   const A={form:0,xray:0,lumpHi:0,probe:0,needle:0,passes:0,clip:0,dressing:0,syringe:0,scalpel:0,labels:0};
   const TGT=Object.assign({},A);
 
+  function stepPrefix(i){
+    /* k80 is the pattern key the language switcher already used, but it existed in
+       no locale — so every language showed "Step N of M". Now translated in all six. */
+    const dict=(lang!=='en' && typeof I18N!=='undefined' && I18N[lang] && I18N[lang].html)||EN_TXT;
+    const tpl=(dict&&dict.k80)||(EN_TXT&&EN_TXT.k80)||'Step {n} of {m}.';
+    return tpl.replace('{n}', String(i+1)).replace('{m}', String(STEPS.length));
+  }
+
   function setStep(i){
     cur=i; const s=STEPS[i];
     clickSequence(false);   /* the pass cycle fires the click, not a timer */
-    label.innerHTML='<b>Step '+(i+1)+' of '+STEPS.length+'.</b> '+s.t;
+    label.innerHTML='<b>'+stepPrefix(i)+'</b> '+s.t;
     note.textContent=s.n;
-    srText.textContent='Step '+(i+1)+' of '+STEPS.length+'. '+s.t+'. '+s.n;
+    srText.textContent=stepPrefix(i)+' '+s.t+'. '+s.n;
     stepCount.textContent=(i+1)+' / '+STEPS.length;
     refreshNav();
     [...chips.children].forEach((c,j)=>c.setAttribute('aria-current',String(j===i)));
