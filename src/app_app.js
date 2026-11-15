@@ -54,7 +54,7 @@
 
   STEPS.forEach((s,i)=>{
     const b=document.createElement('button');
-    b.className='stepchip'; b.setAttribute('role','tab');
+    b.className='stepchip';
     b.textContent=(i+1)+'. '+s.t;
     b.onclick=()=>{ stopPlay(); setStep(i); };
     chips.appendChild(b);
@@ -147,6 +147,10 @@
       const v=cat&&cat.html ? cat.html[el.dataset.i18n] : null;
       setText(el, v||EN_TXT[el.dataset.i18n]||el.textContent);
     });
+    /* The loop above restores k01 ('Larger text'); if the text is currently enlarged,
+       the button must keep saying what it will DO (largest / reset), in this language. */
+    const sv=root.getAttribute('data-size')||'normal';
+    if(sv!=='normal'){ const sb=document.getElementById('btnSize'); if(sb) sb.textContent=prefText(sv); }
     STEPS.forEach((s,i)=>{
       const tr=cat&&cat.steps ? cat.steps['step'+String(i+1).padStart(2,'0')] : null;
       s.t=(tr&&tr.t)||EN_STEPS[i].t;
@@ -164,7 +168,7 @@
     srText.textContent=stepLabel(cat,cur+1,STEPS.length)+' '+STEPS[cur].t+'. '+STEPS[cur].n;
     refreshNav();
     if(langPick) langPick.value=code;
-    try{ localStorage.setItem('fnac.lang',code); }catch(_){}
+    try{ localStorage.setItem('breast.lang',code); }catch(_){}
   }
   if(langPick) langPick.addEventListener('change',()=>{ applyLang(langPick.value); if(audioOn) playStepAudio(cur); else stopClip(); });
   /* English is the default every visit. The language is still remembered for the switcher, but
@@ -354,19 +358,37 @@
   }
 
   /* ------------------------------------------------------------ UI prefs -- */
-  const SIZES=['normal','large','xl']; let sizeIdx=0;
-  document.getElementById('btnSize').onclick=(e)=>{
-    sizeIdx=(sizeIdx+1)%SIZES.length; const v=SIZES[sizeIdx];
+  /* Display prefs (text size, contrast) persist across visits under breast-specific keys.
+     The attributes themselves are restored before paint by the inline script in the head;
+     here we re-sync the button labels/aria-pressed to the restored state and save on change. */
+  const SIZES=['normal','large','xl'];
+  function prefText(v){
+    const dict=(lang!=='en'&&typeof I18N!=='undefined'&&I18N[lang]&&I18N[lang].html)||EN_TXT;
+    return v==='large'?(dict.k259||EN_TXT.k259||'Largest text')
+         :(v==='xl'?(dict.k260||EN_TXT.k260||'Reset text size')
+         :(dict.k01||EN_TXT.k01||'Larger text'));
+  }
+  const sizeBtn=document.getElementById('btnSize');
+  sizeBtn.onclick=(e)=>{
+    const v=SIZES[(SIZES.indexOf(root.getAttribute('data-size')||'normal')+1)%SIZES.length];
     if(v==='normal') root.removeAttribute('data-size'); else root.setAttribute('data-size',v);
+    try{ localStorage.setItem('breast.size',v); }catch(_){}
     e.currentTarget.setAttribute('aria-pressed',String(v!=='normal'));
-    e.currentTarget.textContent=v==='normal'?'Larger text'
-      :(v==='large'?'Largest text':'Reset text size');
+    e.currentTarget.textContent=prefText(v);
   };
   document.getElementById('btnContrast').onclick=(e)=>{
     const on=root.getAttribute('data-contrast')==='high';
     if(on) root.removeAttribute('data-contrast'); else root.setAttribute('data-contrast','high');
+    try{ localStorage.setItem('breast.contrast',on?'normal':'high'); }catch(_){}
     e.currentTarget.setAttribute('aria-pressed',String(!on));
   };
+  (function syncPrefsUI(){
+    const v=root.getAttribute('data-size')||'normal';
+    sizeBtn.setAttribute('aria-pressed',String(v!=='normal'));
+    if(v!=='normal') sizeBtn.textContent=prefText(v);
+    document.getElementById('btnContrast').setAttribute('aria-pressed',
+      String(root.getAttribute('data-contrast')==='high'));
+  })();
   /* A rotate toggle used to be wired here, to `#btnRotate` - an element that is not in the markup,
      so it was never attached. Left in, it is the same trap that broke this page before: a handler
      for an element that does not exist. The model no longer turns on its own, which is what was

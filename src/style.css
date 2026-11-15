@@ -71,7 +71,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .langpick::before{content:"🌐";font-size:calc(var(--fs)*.95);line-height:1}
 .langpick select{background:transparent;color:var(--ink);border:0;
   padding:8px 26px 8px 2px;font-family:inherit;font-size:calc(var(--fs)*.86);
-  min-height:40px;cursor:pointer;font-weight:700;letter-spacing:.2px}
+  min-height:44px;cursor:pointer;font-weight:700;letter-spacing:.2px}
 .langpick select:hover{color:var(--accent2)}
 .langpick:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 html[lang="ta"] body{font-family:"Noto Sans Tamil","Latha","Tamil Sangam MN",system-ui,sans-serif}
@@ -234,9 +234,28 @@ html[data-contrast="high"] .sheet-note{background:#141414;border-left-color:#ffc
 .sources li{margin-bottom:6px}
 
 @media print{
-  .bar,.play,.stepchip,.ctrl,.stage{display:none!important}
-  body{background:#fff;color:#000}
-  p,li,.note,.sheet-note{color:#000}
+  /* Print is the take-home sheet: black on white, no chrome, no dark-screen cards.
+     Everything dark on screen must flip — black text left on a dark card is unreadable paper. */
+  .bar,.ctrl,.langpick,.play,.stepchip,.steps,.stepnav,.stage,.stage-bar,.stage-meta,
+  .step-label,#stepNote,.foot{display:none!important}
+  html,body{background:#fff!important;color:#000!important}
+  .wrap{padding:0 8mm}
+  *{box-shadow:none!important;text-shadow:none!important}
+  h1,h2,h3,a,.kicker,h1 span,p,li,.lede,.card,.fact,.risk,.risk .h,.risk .d,
+  .fact .k,.fact .v,.note,.sheet-note,.sources,.sources h3,.tl .when,.tl .what,
+  .check,.badge,.stepcount,.sev{color:#000!important}
+  a{color:#000;text-decoration:underline}
+  .card,.fact,.risk,.sources,.shortcut,.sheet-note,.note{background:#fff!important;
+    border:1px solid #767676}
+  section + section{border-top:1px solid #767676}
+  h2 .num{background:#fff!important;color:#000!important;border:1.5px solid #000}
+  .sev{border:1px solid #000}
+  .check{border-bottom-color:#767676}
+  /* The tick boxes are what the patient ticks on paper — they must be visible on white. */
+  .check .box{border:2px solid #000;background:#fff}
+  .tl:before,.tl .item:before{background:#000!important;border-color:#fff!important}
+  .note,.sheet-note{border-left:3px solid #000!important}
+  .card,.risk,.fact,.check,.tl .item{break-inside:avoid}
 }
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.001ms!important;transition-duration:.001ms!important}
@@ -275,6 +294,6 @@ html[data-contrast="high"] .sheet-note{background:#141414;border-left-color:#ffc
 
 /* --------------------------------------------------------------- footer --- */
 .foot{margin:40px 0 0;padding:22px 0 8px;border-top:1px solid var(--line);
-  color:var(--muted);font-size:calc(var(--fs)*.7);line-height:1.55}
+  color:var(--ink3);font-size:calc(var(--fs)*.7);line-height:1.55}
 .foot p{margin:0 0 8px}
 .foot a{color:inherit;text-decoration:underline;text-underline-offset:2px}

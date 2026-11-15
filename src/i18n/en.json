@@ -101,7 +101,9 @@
   "k95": "Ultrasound probe",
   "k96": "Needle",
   "k97": "Marker clip",
-  "k98": "Dressing"
+  "k98": "Dressing",
+  "k259": "Largest text",
+  "k260": "Reset text size"
  },
  "steps": {
   "step01": {
