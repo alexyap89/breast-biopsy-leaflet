@@ -766,8 +766,8 @@ function buildThreeScene(THREE, root){
 
   /* The GLB arrives standing along Z: the glTF Y-up conversion undid the supine pose that
      build_breast.py applies in Blender. Lay it down here, once, before any anchor is measured,
-     so the body runs along Y and the chest faces +Z - which is the basis the camera, the
-     labels and every anchor assume. */
+     so the body runs along Y and the chest faces -Z (verified by raycast 2026-11-15) - the basis the
+     camera, the labels and every anchor assume. */
   for(const role in G){ G[role].rotation.x = -Math.PI/2; }
   scene.updateMatrixWorld(true);
 
@@ -1647,7 +1647,12 @@ function buildThreeScene(THREE, root){
     setInterval(()=>{ if(performance.now()-lastRaf>250) step(performance.now()); },33); }
 
   scene.updateMatrixWorld(true);
-  /* probe: centre the footprint over the lesion and seat it on the curved skin */
+  /* probe: centre the footprint over the lesion and seat it on the curved skin.
+     The contact face is the footprint's MAX-z face: the handle runs outward toward
+     -z, so seating min.z (as this used to) buries the whole foot ~2.6 cm inside the
+     breast (measured live 2026-11-15). The foot is also tilted onto the local
+     surface normal: a flat foot on the curved breast otherwise touches at one point
+     and floats at the outer edge. */
   (function seatProbe(){
     try{
       const P=T.parts.probe, L=T.anchors.LUMP_WORLD; if(!P||!L) return;
@@ -1655,14 +1660,36 @@ function buildThreeScene(THREE, root){
       if(!foot) return;
       const rc=new THREE.Raycaster(), bm=[];
       T.parts.body.traverse(o=>{ if(o.isMesh) bm.push(o); });
-      const surf=(x,y)=>{ rc.set(new THREE.Vector3(x,y,-0.5), new THREE.Vector3(0,0,1)); let b=1e9;
+      const surf=(x,y)=>{ rc.set(new THREE.Vector3(x,y,-0.6), new THREE.Vector3(0,0,1)); let b=1e9;
         bm.forEach(m=>{ const h=rc.intersectObject(m,true); h.forEach(x2=>{ if(x2.point.z<b) b=x2.point.z; }); });
         return b>1e8 ? null : b; };
+      /* Sit the foot on the most anterior point of the breast within 2 cm of the
+         lesion, not on the lesion's own x/y: the lump sits on the lateral flank,
+         where the breast curves away steeply and a flat foot would rest on one
+         edge with the rest in the air. Closest-to-transducer is also where a
+         sonographer actually puts the probe. */
+      let cx=L.x, cy=L.y, cz=surf(L.x,L.y);
+      for(let gx=L.x-0.02; gx<=L.x+0.02+1e-9; gx+=0.005)
+        for(let gy=L.y-0.02; gy<=L.y+0.02+1e-9; gy+=0.005){
+          const v=surf(gx,gy); if(v!==null && (cz===null || v<cz)){ cz=v; cx=gx; cy=gy; } }
       const f0=new THREE.Box3().setFromObject(foot);
-      P.position.x += L.x-(f0.min.x+f0.max.x)/2;
-      P.userData.y0 = L.y-(f0.min.y+f0.max.y)/2; P.position.y = P.userData.y0;
-      const f1=new THREE.Box3().setFromObject(foot), z1=surf(L.x,L.y);
-      if(z1!==null) P.position.z += (z1-0.0012)-f1.min.z;
+      P.position.x += cx-(f0.min.x+f0.max.x)/2;
+      P.userData.y0 = cy-(f0.min.y+f0.max.y)/2; P.position.y = P.userData.y0;
+      const f1=new THREE.Box3().setFromObject(foot), z1=cz;
+      if(z1!==null){
+        P.position.z += (z1+0.0008)-f1.max.z;   /* foot face just kissing the skin */
+        const d=0.015, zr=surf(cx+d,cy), zx=surf(cx-d,cy),
+              zp=surf(cx,cy+d), zn=surf(cx,cy-d);
+        if([zr,zx,zp,zn].every(v=>v!==null)){
+          const n=new THREE.Vector3((zr-zx)/(2*d),(zp-zn)/(2*d),-1).normalize();
+          if(n.z<-0.86){   /* trust the normal only within ~30 deg of upright */
+            const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,-1), n);
+            const c=new THREE.Vector3(cx, cy, z1+0.0008);   /* foot-face centre = pivot */
+            P.position.sub(c).applyQuaternion(q).add(c);
+            P.quaternion.premultiply(q);
+          }
+        }
+      }
     }catch(e){}
   })();
   setStep(0);
