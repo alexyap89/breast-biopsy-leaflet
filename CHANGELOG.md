@@ -5,6 +5,41 @@ Rollback of any single entry: `git revert <commit>` then rebuild
 (`python3 tools/build.py`). Rollback of everything: `git checkout <previous tag>`.
 Nothing below is live until Alex pushes `main` and GitHub Pages redeploys.
 
+## [v0.9.1] — 2026-11-16 (media edition; local only, not pushed)
+
+### M3 — Motion beats for the two cold steps (this commit)
+- Steps 4 and 6 were stills that didn't show the action Alex asked for (LA = gauze;
+  needle step = bare probe). Both are now local **image-to-video clips** (LTX-2.5,
+  49f @24fps, 768×480, faststart, ~160 KB each) generated from the graded stills:
+  `m4_lido.mp4` (needle advances, skin dimples) and `m6_needle.mp4` (needle enters
+  in one straight line beside the sheathed probe). Stills remain as posters.
+- v10 stills were attempted first and **rejected**: seed 137 drifted to an abdomen
+  with a navel; seed 401 gave ambiguous anatomy; the b6 v10 take grew the needle
+  out of the probe. Adopted v9/v8 stills instead — same recipe as FNAC (still
+  poises, clip carries the entry).
+- Verified: four video elements in the built page (m2/m3/m4/m6), posters set,
+  `paused=false`, no media error, zero 4xx on the resource timeline; clips
+  frame-checked (first/last) and structure-checked (moov before mdat).
+- Known: nan.json still duplicates zh.json (Carried from C6).
+
+### M2 — Generated stills replace the hand-drawn SVGs and wrong beats
+- Adopted graded renders over SVGs: `b1_anatomy.jpg` (breast cross-section
+  illustration with lump) and `b7_clip.jpg` (marker clip + magnified inset).
+- Replaced wrong-beat stills: b4 LA injection (was a clinician holding gauze),
+  b5 scalpel nick (was a marking pen on the drape), b6 biopsy device at entry
+  beside the probe (was a bare probe). Alt text rewritten to match; stale
+  `b1_anatomy.svg`, `b7_clip.svg`, `b5_mark.jpg`, `b6_probe.jpg` removed.
+- Rollback: `git revert` this range; rebuild with `python3 tools/build2.py`.
+
+### M1 — Media edition restored
+- `src2/app_media.js`, `src2/style_media.css`, `tools/build2.py`, `assets/*` and
+  built `index2.html` were evicted by a C-cycle `git clean` and recovered
+  byte-identical from Google Drive trash; now committed to the repo.
+- Fix: stage media now eager-loads (`loading='lazy'` starved below-fold step
+  swaps; video `preload='auto'`).
+- Media edition builds against the current `src/` (inherits C1–C8: k80 locales,
+  lazy EN audio, favicon).
+
 ## [v0.9.0] — 2026-11-15 (C1–C8 overnight cycles; local only, not pushed)
 
 ### C8 — Deploy hygiene (this commit)
