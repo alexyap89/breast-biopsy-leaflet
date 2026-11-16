@@ -10,3 +10,21 @@ video.mediaEl{animation:kbv 12s ease-out both}
 }
 /* the SVG diagrams read better contained than cropped */
 .media-stage img.mediaEl[src$=".svg"]{object-fit:contain;padding:2%;animation:none}
+
+/* Print sheet: all nine steps with pictures. Hidden on screen; the base print CSS
+   hides the interactive stage, so on paper this sheet is the leaflet. */
+.printsheet{display:none}
+@media print{
+  .printsheet{display:block!important;page-break-before:auto}
+  .printsheet figure{break-inside:avoid;page-break-inside:avoid;margin:0 0 6mm 0}
+  .printsheet img{width:86mm;height:auto;border:0.3pt solid #999;display:block}
+  .printsheet figcaption{margin-top:2mm}
+  .printsheet figcaption b{display:block;font-size:10.5pt;margin-bottom:1mm}
+  .printsheet figcaption p{font-size:9.5pt;line-height:1.35;margin:0}
+  /* the base sheet's colour list misses several muted spans; on paper anything
+     below ~#333 is a smudge, so force near-black across the whole printed body */
+  .wrap p,.wrap li,.wrap span,.wrap b,.wrap strong,.wrap em,.wrap small,.wrap div,
+  .printsheet *{color:#000!important}
+  /* an instruction to tap and press play is nonsense on paper */
+  [data-i18n="k125b"],[data-i18n="k71b"]{display:none!important}
+}

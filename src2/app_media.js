@@ -183,6 +183,36 @@
     document.documentElement.lang=code;
     setStep(cur);
     if(langPick) langPick.value=code;
+    renderPrintSheet();
+  }
+
+  /* Print is the take-home sheet. The interactive page can only show one step at a
+     time; on paper that product is useless, so a hidden sheet is rendered with all
+     nine steps, each with its picture and caption, in the current language. */
+  let printSheet=null;
+  function renderPrintSheet(){
+    if(!printSheet){
+      printSheet=document.createElement('section');
+      printSheet.className='printsheet';
+      printSheet.setAttribute('aria-hidden','true');
+      const wrap=document.querySelector('.wrap')||document.body;
+      wrap.appendChild(printSheet);
+    }
+    printSheet.textContent='';
+    STEPS.forEach((s,i)=>{
+      const fig=document.createElement('figure');
+      const img=document.createElement('img');
+      img.src=(s.media.kind==='vid')?(s.media.poster||''):s.media.src;
+      img.alt=s.media.alt||'';
+      const cap=document.createElement('figcaption');
+      const b=document.createElement('b');
+      b.textContent=(i+1)+'. '+s.t;
+      const p=document.createElement('p');
+      p.textContent=s.n;
+      cap.appendChild(b); cap.appendChild(p);
+      fig.appendChild(img); fig.appendChild(cap);
+      printSheet.appendChild(fig);
+    });
   }
   langPick && langPick.addEventListener('change',()=>{ applyLang(langPick.value); if(audioOn) playStepAudio(cur); else stopClip(); });
 
@@ -195,5 +225,6 @@
     if(handled) e.preventDefault();
   });
 
+  renderPrintSheet();
   setStep(0);
 })();
