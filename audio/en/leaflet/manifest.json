@@ -1,6 +1,6 @@
 {
- "engine": "omnivoice",
- "voice": "OmniVoice k2-fsa/OmniVoice, one cloned reference voice for every step",
+ "engine": "edge",
+ "voice": "edge-tts en-SG-LunaNeural rate=-4% pitch=-2Hz (Singapore English)",
  "files": [
   "audio/en/leaflet/step01.mp3",
   "audio/en/leaflet/step02.mp3",
@@ -18,95 +18,95 @@
    "title": "Your breast and the lump",
    "characters": 176,
    "words": 35,
-   "duration_s": 10.25,
-   "bytes": 62037,
-   "wpm": 204.9,
-   "engine": "omnivoice"
+   "duration_s": 14.3,
+   "bytes": 85824,
+   "wpm": 146.9,
+   "engine": "edge"
   },
   "step02": {
    "step": 2,
    "title": "Finding the lump with ultrasound",
    "characters": 210,
    "words": 41,
-   "duration_s": 12.69,
-   "bytes": 76725,
-   "wpm": 193.9,
-   "engine": "omnivoice"
+   "duration_s": 16.37,
+   "bytes": 98208,
+   "wpm": 150.3,
+   "engine": "edge"
   },
   "step03": {
    "step": 3,
    "title": "Cleaning the skin",
    "characters": 161,
    "words": 32,
-   "duration_s": 9.39,
-   "bytes": 56853,
-   "wpm": 204.5,
-   "engine": "omnivoice"
+   "duration_s": 13.7,
+   "bytes": 82224,
+   "wpm": 140.1,
+   "engine": "edge"
   },
   "step04": {
    "step": 4,
    "title": "Numbing the area",
    "characters": 186,
    "words": 35,
-   "duration_s": 11.16,
-   "bytes": 67437,
-   "wpm": 188.2,
-   "engine": "omnivoice"
+   "duration_s": 16.99,
+   "bytes": 101952,
+   "wpm": 123.6,
+   "engine": "edge"
   },
   "step05": {
    "step": 5,
    "title": "A small nick in the skin",
    "characters": 200,
    "words": 40,
-   "duration_s": 12.12,
-   "bytes": 73269,
-   "wpm": 198.0,
-   "engine": "omnivoice"
+   "duration_s": 16.37,
+   "bytes": 98208,
+   "wpm": 146.6,
+   "engine": "edge"
   },
   "step06": {
    "step": 6,
    "title": "The biopsy needle goes in",
    "characters": 261,
    "words": 45,
-   "duration_s": 16.03,
-   "bytes": 96813,
-   "wpm": 168.4,
-   "engine": "omnivoice"
+   "duration_s": 20.9,
+   "bytes": 125424,
+   "wpm": 129.2,
+   "engine": "edge"
   },
   "step07": {
    "step": 7,
    "title": "The marker clip",
    "characters": 174,
    "words": 39,
-   "duration_s": 10.06,
-   "bytes": 60957,
-   "wpm": 232.6,
-   "engine": "omnivoice"
+   "duration_s": 15.65,
+   "bytes": 93888,
+   "wpm": 149.5,
+   "engine": "edge"
   },
   "step08": {
    "step": 8,
    "title": "Pressure, then a dressing",
    "characters": 162,
    "words": 31,
-   "duration_s": 10.26,
-   "bytes": 62037,
-   "wpm": 181.3,
-   "engine": "omnivoice"
+   "duration_s": 16.97,
+   "bytes": 101808,
+   "wpm": 109.6,
+   "engine": "edge"
   },
   "step09": {
    "step": 9,
    "title": "Afterwards, and your results",
    "characters": 235,
    "words": 41,
-   "duration_s": 14.49,
-   "bytes": 87525,
-   "wpm": 169.8,
-   "engine": "omnivoice"
+   "duration_s": 21.96,
+   "bytes": 131760,
+   "wpm": 112.0,
+   "engine": "edge"
   }
  },
  "total": {
-  "duration_s": 106.45,
-  "bytes": 643653,
+  "duration_s": 153.21,
+  "bytes": 919296,
   "steps": 9
  }
 }

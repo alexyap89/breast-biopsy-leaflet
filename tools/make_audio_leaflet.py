@@ -86,6 +86,16 @@ NEURAL_LUFS = -19.0
 NEURAL_TRUE_PEAK = -1.5
 NEURAL_BITRATE = "48k"        # matches the density of the clips it replaces (784,930 B for 130 s)
 
+# ---- Singapore-local neural engine (edge-tts) -----------------------------------
+# OmniVoice's reference voice is en-GB and was cloned on another machine; the audience
+# here is NHG patients in Singapore, so the narration should sound like a local
+# clinician, not a BBC reader. Microsoft's en-SG neural voices are the two available
+# locally: en-SG-LunaNeural (female, warmer for anxious patients) and
+# en-SG-WayneNeural (male). Swap EDGE_VOICE to change speaker; no other edit needed.
+EDGE_VOICE = "en-SG-LunaNeural"
+EDGE_RATE = "-4%"             # slight slow-down; SG voices read briskly at default
+EDGE_PITCH = "-2Hz"           # takes the sparkle off, closer to a calm clinician
+
 
 def parse_steps():
     """Pull the STEPS array out of the page's own source."""
@@ -167,6 +177,21 @@ def synth_gtts(text, path):
     return "gtts"
 
 
+def synth_edge(text, path):
+    """Singapore-accented neural voice via edge-tts; writes MP3 directly."""
+    import asyncio
+    import edge_tts
+
+    async def _run():
+        tts = edge_tts.Communicate(text, EDGE_VOICE, rate=EDGE_RATE, pitch=EDGE_PITCH)
+        await tts.save(path)
+
+    asyncio.run(_run())
+    if not os.path.exists(path) or os.path.getsize(path) < 8192:
+        raise SystemExit(f"edge-tts produced nothing usable for {os.path.basename(path)}")
+    return "edge"
+
+
 def synth_say(text, path):
     aiff = path + ".aiff"
     if os.path.exists(aiff):
@@ -212,7 +237,8 @@ def ffmpeg_exe():
     That took down the whole tool, not just the neural path - `duration()` returned 0.0 for every
     clip (silently, because it swallowed the failure) and the pace check then failed a good run.
     The venv's self-contained copy reports libmp3lame and needs no homebrew, so use it when the
-    system one is unusable.
+    system one is unusable. (On the Mac Studio neither the homebrew path nor the MBP venv exists;
+    PATH carries a working static build, so it must be tried between them.)
     """
     try:
         if subprocess.run([FFMPEG, "-hide_banner", "-version"],
@@ -220,6 +246,14 @@ def ffmpeg_exe():
             return FFMPEG
     except OSError:
         pass
+    on_path = shutil.which("ffmpeg")
+    if on_path:
+        try:
+            if subprocess.run([on_path, "-hide_banner", "-version"],
+                              capture_output=True).returncode == 0:
+                return on_path
+        except OSError:
+            pass
     return subprocess.run([NEURAL_VENV, "-c",
                            "import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())"],
                           capture_output=True, text=True, check=True).stdout.strip()
@@ -304,7 +338,7 @@ def neural_mp3(wav, path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--engine", choices=("auto", "gtts", "say", "omnivoice"), default="say")
+    ap.add_argument("--engine", choices=("auto", "gtts", "say", "omnivoice", "edge"), default="say")
     args = ap.parse_args()
 
     steps = parse_steps()
@@ -337,6 +371,9 @@ def main():
                 raise SystemExit(f"no neural render for step {i}: {wav}")
             gain = neural_mp3(wav, path)
             engine = "omnivoice"
+        if args.engine == "edge":
+            synth_edge(text, path)
+            engine = "edge"
         if args.engine in ("auto", "gtts"):
             try:
                 synth_gtts(text, raw)
@@ -370,6 +407,8 @@ def main():
         "engine": engine_used,
         "voice": (f"macOS say {SAY_VOICE} at {SAY_RATE} wpm" if engine_used == "say"
                   else f"gTTS en tld={GTTS_TLD}" if engine_used == "gtts"
+                  else f"edge-tts {EDGE_VOICE} rate={EDGE_RATE} pitch={EDGE_PITCH} (Singapore English)"
+                  if engine_used == "edge"
                   else f"OmniVoice {NEURAL_MODEL}, one cloned reference voice for every step"),
         "files": [f"audio/en/leaflet/step{i:02d}.mp3" for i in range(1, len(rows) + 1)],
         "steps": {f"step{r['step']:02d}": r for r in rows},
