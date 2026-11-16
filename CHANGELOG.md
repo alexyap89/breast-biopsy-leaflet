@@ -5,6 +5,33 @@ Rollback of any single entry: `git revert <commit>` then rebuild
 (`python3 tools/build.py`). Rollback of everything: `git checkout <previous tag>`.
 Nothing below is live until Alex pushes `main` and GitHub Pages redeploys.
 
+## [v0.9.3] — 2026-11-16 (refinement pass — performance, i18n correctness, print)
+
+### RF — Ship-grade polish
+- **Wire weight:** index2.html 1.35 MB → **129 KB** (37.8 KB gzipped). Narration now
+  ships as `audio/<locale>/leaflet/stepNN.mp3` fetched on demand (same contract as
+  the 3D page's C4), instead of 0.92 MB of base64 inlined on every visit.
+  `tools/build2.py --standalone` restores the single-file build.
+- **i18n correctness:** every language still showed the 3D page's "drag the picture
+  to rotate" instruction, and the stage badge key (`k71b`) existed in no locale, so
+  all six languages silently fell back to English. Added `k125b` (media intro) and
+  `k71b` (badge) to all six locales; the 3D page keeps its own `k125` untouched.
+- **Intro copy accuracy:** "The pictures are illustrations, not photographs" is wrong
+  for a photoreal set; now "created for this guide and do not show a real patient"
+  in all six languages (AI-media disclaimer requirement).
+- **Print:** the base print CSS hides the interactive stage, so printing produced a
+  leaflet with no pictures. New print sheet renders all nine steps (image + numbered
+  caption) in the current language, figures break-safe, black-on-white, muted text
+  forced to near-black, tap/play instructions hidden on paper.
+- **Step 8:** was an abstract gauze-on-cloth macro, out of family with the breast
+  close-ups. Re-shot in the b4/b5/b6 framing (gloved hand pressing gauze beside the
+  areola, tape ready) + motion beat `m8_dressing.mp4`. s777 rejected (mitten hand).
+- **Now 5 motion beats:** steps 2, 3, 4, 6, 8 play clips; 1, 5, 7, 9 are stills.
+- Verified: all nine steps, five video elements, zero 4xx; mobile 390×844 no overflow
+  and every tap target ≥44 px; print emulation shows nine figures; 54/54 narration
+  files serve 200 with `audio/mpeg` and working ranges.
+- Rollback: `git revert 4e37ef2 b4100fa`; rebuild `python3 tools/build2.py`.
+
 ## [v0.9.2] — 2026-11-16 (media round 2 — Alex's review fixes)
 
 ### R2 — Step 7 corrected, step 6 re-framed, local voice
