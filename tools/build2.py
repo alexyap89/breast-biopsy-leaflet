@@ -38,7 +38,8 @@ def patch_head_body(html: bytes) -> bytes:
     html, n = re.subn(
         rb'<p data-i18n="k125">(?:.*?\n)*?.*?</p>',
         ("<p data-i18n=\"k125b\">Tap any step below, or press play, to see what happens "
-         "at each step. The pictures are illustrations, not photographs.</p>").encode(),
+         "at each step. The pictures were created for this guide and do not show a real "
+         "patient.</p>").encode(),
         html, count=1)
     if n != 1:
         raise SystemExit("k125 paragraph not found in head_body.html")
