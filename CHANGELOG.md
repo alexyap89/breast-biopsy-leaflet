@@ -5,6 +5,30 @@ Rollback of any single entry: `git revert <commit>` then rebuild
 (`python3 tools/build.py`). Rollback of everything: `git checkout <previous tag>`.
 Nothing below is live until Alex pushes `main` and GitHub Pages redeploys.
 
+## [v0.9.2] — 2026-11-16 (media round 2 — Alex's review fixes)
+
+### R2 — Step 7 corrected, step 6 re-framed, local voice
+- **Step 7 (marker clip):** Alex: wrong needle trajectory, and no needle should be
+  shown at all. New illustration `b7_clip.jpg` (v11): the V-shaped clip sits inside
+  the grey lump, magnified inset lower-right, **no needle/wire/channel** (negatives
+  enforce it). Rejected the old v8 render which drew a biopsy channel in at 20–25°.
+- **Step 6 (needle goes in):** Alex: the old frame read as a different anatomy
+  (it was a wide torso). v11–v13 rejected (invented red mark that read as blood,
+  navel-like areola, ambiguous anatomy). v14 s137 accepted: breast in the drape
+  slit, needle entering below the areola, same visual family as the LA (b4) and
+  scalpel (b5) frames Alex approved. `m6_needle.mp4` re-rendered from the new
+  still (LTX-2.5, seed 777, "nothing moves except the needle"); frame-audited.
+- **Step 2 poster:** was a clinician with an empty hand (no probe); replaced with
+  a real frame from `m2_probe_glide.mp4` showing sheathed probe + gel on skin.
+- **Narration:** English re-rendered in **Singapore English** — edge-tts
+  `en-SG-LunaNeural`, rate −4 %, pitch −2 Hz (147 wpm, 153 s total, 0.92 MB).
+  Previous OmniVoice set preserved as `stepNN.omnivoice.mp3`; engine selectable
+  with `python3 tools/make_audio_leaflet.py --engine edge|omnivoice|say|gtts`.
+  Other locales unchanged.
+- Verified: steps 1–9 media all load; step 6 poster+clip and step 7 illustration
+  checked on the live page; no 4xx.
+- Rollback: `git revert 0e07dac`; rebuild `python3 tools/build2.py`.
+
 ## [v0.9.1] — 2026-11-16 (media edition; local only, not pushed)
 
 ### M3 — Motion beats for the two cold steps (this commit)
