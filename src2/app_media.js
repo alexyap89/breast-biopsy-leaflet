@@ -31,7 +31,7 @@
      n:"The anaesthetic has taken effect and the skin is numb. A tiny nick is made in the skin at the spot the needle will enter, so the biopsy needle passes through cleanly.",
      media:{kind:'img', src:'assets/b5_nick.jpg', alt:"A blue-gloved hand holds a fine scalpel blade against the numb skin, making a tiny nick at the entry spot."}},
     {t:"The biopsy needle goes in",
-     n:"The biopsy needle is introduced under ultrasound guidance and guided into the lump. Each time the device fires, a thin core of tissue is taken; the needle is drawn back and re-introduced until enough tissue has been collected.",
+     n:"The biopsy needle is introduced under ultrasound guidance and guided into the lump. Each time the device fires you will hear a short, sharp click as a thin core of tissue is taken; the needle is drawn back and re-introduced until enough tissue has been collected.",
      media:{kind:'vid', src:'assets/m6_needle.mp4', poster:'assets/b6_needle.jpg', alt:"Beside the flat grey linear ultrasound probe, the biopsy needle advances into the skin beside the areola and stops, the skin dimpling at the entry point."}},
     {t:"The marker clip",
      n:"A very small clip is left at the spot, so the area can be found again later. You cannot feel it, and it is safe to have an MRI scan with it in place.",
