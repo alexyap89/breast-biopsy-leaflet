@@ -117,7 +117,7 @@
   let audioOn=false;
   const localeBroken={};
   function localeSrc(code,i){
-    if(!code || code==='en' || localeBroken[code]) return null;
+    if(!code || localeBroken[code]) return null;
     if(typeof AUDIO_LOCALES==='undefined') return null;
     const set=AUDIO_LOCALES[code];
     return (set && set[String(i+1)]) || null;
