@@ -116,7 +116,10 @@ def parse_steps():
 
 
 def spoken(i, title, note):
-    return speakable(f"Step {i}. {title}. {note}")
+    # The on-screen heading and the spoken sentence would say the same thing twice:
+    # "Step 8. Pressure, then a dressing. Firm pressure is held..." reads as filler.
+    # Keep the step number for audio-only listeners, drop the title.
+    return speakable(f"Step {i}. {note}")
 
 
 def speakable(text):
