@@ -806,6 +806,7 @@ const I18N={"en":{"html":{"k01":"Larger text","k02":"High contrast","k03":"Print
     if(handled) e.preventDefault();
   });
 
+  if(btnSound){ btnSound.setAttribute('aria-pressed','false'); btnSound.textContent='🔇 Sound off'; }
   renderPrintSheet();
   setStep(0);
 })();

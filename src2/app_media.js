@@ -226,6 +226,7 @@
     if(handled) e.preventDefault();
   });
 
+  if(btnSound){ btnSound.setAttribute('aria-pressed','false'); btnSound.textContent='🔇 Sound off'; }
   renderPrintSheet();
   setStep(0);
 })();
