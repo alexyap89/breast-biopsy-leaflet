@@ -734,7 +734,8 @@ const I18N={"en":{"html":{"k01":"Larger text","k02":"High contrast","k03":"Print
   btnSound && btnSound.addEventListener('click',()=>{
     audioOn=!audioOn;
     btnSound.setAttribute('aria-pressed',String(audioOn));
-    btnSound.textContent=audioOn?'🔇 Sound off':'🔊 Sound on';
+    /* label shows the STATE (conventional): on = narration is playing */
+    btnSound.textContent=audioOn?'🔊 Sound on':'🔇 Sound off';
     if(audioOn){ playStepAudio(cur); } else { stopClip(); }
   });
 

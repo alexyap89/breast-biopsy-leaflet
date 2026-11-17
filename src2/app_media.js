@@ -154,7 +154,8 @@
   btnSound && btnSound.addEventListener('click',()=>{
     audioOn=!audioOn;
     btnSound.setAttribute('aria-pressed',String(audioOn));
-    btnSound.textContent=audioOn?'🔇 Sound off':'🔊 Sound on';
+    /* label shows the STATE (conventional): on = narration is playing */
+    btnSound.textContent=audioOn?'🔊 Sound on':'🔇 Sound off';
     if(audioOn){ playStepAudio(cur); } else { stopClip(); }
   });
 
