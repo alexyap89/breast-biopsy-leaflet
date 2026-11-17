@@ -120,7 +120,8 @@
     if(!code || localeBroken[code]) return null;
     if(typeof AUDIO_LOCALES==='undefined') return null;
     const set=AUDIO_LOCALES[code];
-    return (set && set[String(i+1)]) || null;
+    const v='?av=2';
+    return (set && set[String(i+1)]) ? set[String(i+1)]+v : null;
   }
   function getClip(i){
     const code=document.documentElement.lang||'en';
