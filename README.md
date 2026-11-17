@@ -1,3 +1,14 @@
+# breast-biopsy-leaflet
+
+Two editions ship from this repo:
+
+| File | Edition | Build |
+|---|---|---|
+| `index.html` | **media edition** — graded stills, motion clips, print sheet | `python3 tools/build2.py --out index.html` |
+| `index3d.html` | 3D edition — three.js scene | `python3 tools/build.py --out index3d.html` |
+
+Both read the same `src/` fragments, `audio/`, and `assets/`. Media assets are versioned with `?v=` / `?av=` query tags so a rebuilt frame is never masked by the browser cache.
+
 # Understanding Your Breast Biopsy — patient leaflet
 
 Interactive patient leaflet for ultrasound-guided breast core biopsy at a Singapore

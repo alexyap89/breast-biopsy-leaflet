@@ -1,3 +1,19 @@
+## [v1.0.0] — 2026-11-16 (media edition goes live)
+
+- `index.html` is now the **media edition** (nine steps: graded stills + five motion beats,
+  six locales, Singapore-English narration, print sheet of all nine steps).
+- The 3D edition is preserved as `index3d.html`; it still builds byte-exact from `src/`.
+- Reverted-freeze note: the un-mosaicked media set is archived outside the published tree at
+  `~/AI-OS/workspace/breast-media/archive_nomosaic/` and documented in
+  `docs/RESTORE-UNMOSAICKED-MEDIA.md`.
+- Mosaic over the nipple (user request) applied to the four photoreal stills and three clips;
+  areola readable, instruments untouched.
+- Narration speaks the step number and body only (headings are not read back).
+
+### Deployment
+- GitHub Pages publishes the repo root from `main` (`.github/workflows/pages.yml`).
+- Rollback: `git revert` this merge and re-run the Pages workflow.
+
 # Changelog — breast-biopsy-leaflet
 
 Newest first. Each entry: what changed, how verified, and how to roll it back.
