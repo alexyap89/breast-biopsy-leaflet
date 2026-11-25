@@ -106,7 +106,9 @@
   "k260": "Set semula saiz teks",
   "k80": "Langkah {n} daripada {m}.",
   "k125b": "Ketik mana-mana langkah di bawah, atau tekan main, untuk melihat apa yang berlaku pada setiap langkah. Gambar-gambar ini dihasilkan untuk panduan ini dan bukan gambar pesakit sebenar.",
-  "k71b": "Ketik langkah di atas, atau tekan main"
+  "k71b": "Ketik langkah di atas, atau tekan main",
+  "k261": "Ilustrasi janaan AI",
+  "k262": "Semua gambar dalam panduan ini ialah ilustrasi janaan AI; tiada pesakit sebenar ditunjukkan."
  },
  "steps": {
   "step01": {

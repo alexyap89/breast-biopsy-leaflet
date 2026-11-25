@@ -28,3 +28,13 @@ video.mediaEl{animation:kbv 12s ease-out both}
   /* an instruction to tap and press play is nonsense on paper */
   [data-i18n="k125b"],[data-i18n="k71b"]{display:none!important}
 }
+
+/* AI disclosure badge, pinned on the media itself */
+.media-stage{position:relative}
+.ai-badge{position:absolute;top:10px;right:10px;z-index:3;
+  font-size:12px;line-height:1;letter-spacing:.02em;
+  padding:7px 10px;border-radius:999px;
+  background:rgba(10,16,24,.88);color:#fff;border:1px solid rgba(255,255,255,.38);font-weight:600;
+  backdrop-filter:blur(2px);pointer-events:none;text-transform:none}
+@media print{ .ai-badge{display:none!important} }
+.printsheet .print-note{margin-top:3mm;font-size:9pt;color:#000}

@@ -12,39 +12,58 @@
   const btnPlay = document.getElementById('btnPlay');
   const langPick = document.getElementById('langPick');
   const btnSound = document.getElementById('btnSound');
+  /* AI disclosure sits ON the media, not only in the intro copy: feedback was that
+     patients could not tell the pictures were synthetic. */
+  const aiBadge = document.createElement('span');
+  aiBadge.className = 'ai-badge';
+  aiBadge.setAttribute('data-i18n', 'k261');
+  aiBadge.textContent = 'AI-generated illustration';
+  if (stage) stage.appendChild(aiBadge);
 
   /* media: kind = 'img' | 'svg' | 'vid'; vid falls back to img while loading */
   const STEPS = [
     {t:"Your breast and the lump",
      n:"The lump your doctor wants to check is inside your breast. Most breast lumps are not cancer, but a sample is the only way to know for certain.",
-     media:{kind:'img', src:'assets/b1_anatomy.jpg?v=15', alt:"Side-view illustration of the breast: fat, gland and ducts around a grey lump, sitting on the chest muscle."}},
+     media:{kind:'img', src:'assets/b1_anatomy.jpg?v=16', alt:"Side-view illustration of the breast: fat, gland and ducts around a grey lump, sitting on the chest muscle."}},
     {t:"Finding the lump with ultrasound",
      n:"You lie on your back with your arm above your head. The doctor moves an ultrasound probe over the skin, and the screen shows the lump, where it sits and how deep it is.",
-     media:{kind:'vid', src:'assets/m2_probe_glide.mp4?v=15', poster:'assets/b2_probe.jpg', alt:"A sterile-sleeved ultrasound probe glides over the skin with a little clear gel, guided by a gloved hand."}},
+     media:{kind:'vid', src:'assets/m2_probe_glide.mp4?v=16', poster:'assets/b2_probe.jpg', alt:"A sterile-sleeved ultrasound probe glides over the skin with a little clear gel, guided by a gloved hand."}},
     {t:"Cleaning the skin",
      n:"The skin over the lump is cleaned and the area is covered with a sterile drape. That is all this step involves, and it takes a moment.",
-     media:{kind:'vid', src:'assets/m3_drape.mp4?v=15', poster:'assets/b3_drape.jpg', alt:"Gloved hands unfold a light-blue sterile drape and bring it gently toward you."}},
+     media:{kind:'vid', src:'assets/m3_drape.mp4?v=16', poster:'assets/b3_drape.jpg', alt:"Gloved hands unfold a light-blue sterile drape and bring it gently toward you."}},
     {t:"Numbing the area",
      n:"Local anaesthetic is injected into the skin and deeper into the breast. It stings for a few seconds, and then the area goes numb. You stay awake the whole time.",
-     media:{kind:'vid', src:'assets/m4_lido.mp4?v=15', poster:'assets/b4_lido.jpg?v=15', alt:"A small syringe with a fine needle advances into the skin beside the areola; the skin dimples as the anaesthetic goes in."}},
+     media:{kind:'vid', src:'assets/m4_lido.mp4?v=16', poster:'assets/b4_lido.jpg?v=16', alt:"A small syringe with a fine needle advances into the skin beside the areola; the skin dimples as the anaesthetic goes in."}},
     {t:"A small nick in the skin",
      n:"The anaesthetic has taken effect and the skin is numb. A tiny nick is made in the skin at the spot the needle will enter, so the biopsy needle passes through cleanly.",
-     media:{kind:'img', src:'assets/b5_nick.jpg?v=15', alt:"A blue-gloved hand holds a fine scalpel blade against the numb skin, making a tiny nick at the entry spot."}},
+     media:{kind:'img', src:'assets/b5_nick.jpg?v=16', alt:"A blue-gloved hand holds a fine scalpel blade against the numb skin, making a tiny nick at the entry spot."}},
     {t:"The biopsy needle goes in",
      n:"The biopsy needle is introduced under ultrasound guidance and guided into the lump. Each time the device fires you will hear a short, sharp click as a thin core of tissue is taken; the needle is drawn back and re-introduced until enough tissue has been collected.",
-     media:{kind:'vid', src:'assets/m6_needle.mp4?v=15', poster:'assets/b6_needle.jpg?v=15', alt:"Beside the flat grey linear ultrasound probe, the biopsy needle advances into the skin beside the areola and stops, the skin dimpling at the entry point."}},
+     media:{kind:'vid', src:'assets/m6_needle.mp4?v=16', poster:'assets/b6_needle.jpg?v=16', alt:"Beside the flat grey linear ultrasound probe, the biopsy needle advances into the skin beside the areola and stops, the skin dimpling at the entry point."}},
     {t:"The marker clip",
      n:"A very small clip is left at the spot, so the area can be found again later. You cannot feel it, and it is safe to have an MRI scan with it in place.",
-     media:{kind:'img', src:'assets/b7_clip.jpg?v=15', alt:"Side-view illustration: a small metallic marker clip sits inside the grey lump; a magnified inset shows the clip."}},
+     media:{kind:'img', src:'assets/b7_clip.jpg?v=16', alt:"Side-view illustration: a small metallic marker clip sits inside the grey lump; a magnified inset shows the clip."}},
     {t:"Pressure, then a dressing",
      n:"Firm pressure is held over the spot to stop any bleeding, then a dressing is applied. It stays on, and stays dry, for 48 hours.",
-     media:{kind:'vid', src:'assets/m8_dressing.mp4?v=15', poster:'assets/b8_dressing.jpg?v=15', alt:"A blue-gloved hand presses a folded square of sterile gauze firmly onto the skin beside the areola; a strip of tape lies ready on the drape."}},
+     media:{kind:'vid', src:'assets/m8_dressing.mp4?v=16', poster:'assets/b8_dressing.jpg?v=16', alt:"A blue-gloved hand presses a folded square of sterile gauze firmly onto the skin beside the areola; a strip of tape lies ready on the drape."}},
     {t:"Afterwards, and your results",
      n:"The numbness wears off within a few hours. Soreness and bruising settle over a few days to two weeks. Use paracetamol if you need it, not ibuprofen or aspirin. Results usually take about two weeks.",
-     media:{kind:'img', src:'assets/b9_after.jpg?v=15', alt:"From below, the masked, capped clinician looks down with a warm smile and a reassuring nod; a band of blue drape runs along the bottom of the frame."}},
+     media:{kind:'img', src:'assets/b9_after.jpg?v=16', alt:"From below, the masked, capped clinician looks down with a warm smile and a reassuring nod; a band of blue drape runs along the bottom of the frame."}},
   ];
 
   let cur=0, playing=false, guided=false, timer=null, curClip=null;
+  /* Synthesised biopsy-gun click (cock + fire), fired in sync with step 6's clip. */
+  const gunClick = new Audio('assets/click.mp3?cv=2');
+  gunClick.preload = 'auto'; gunClick.volume = 0.55;
+  function gunTick(e){
+    const v = e.target;
+    if(!audioOn || !v || v.tagName!=='VIDEO') return;
+    if(v.currentTime < 0.20){ v.__clicked = false; return; }
+    if(!v.__clicked && v.currentTime >= 0.55){
+      v.__clicked = true;
+      try{ gunClick.currentTime = 0; const p = gunClick.play(); if(p&&p.catch) p.catch(()=>{}); }catch(_){}
+    }
+  }
   const clipCache={}, mediaCache={};
 
   /* --- media stage -------------------------------------------------------- */
@@ -68,7 +87,12 @@
     node.alt = (m.kind==='vid') ? '' : (m.alt||'');
     while(stage.firstChild) stage.removeChild(stage.firstChild);
     stage.appendChild(node);
-    if(m.kind==='vid'){ node.currentTime=0; const p=node.play(); if(p&&p.catch)p.catch(()=>{}); }
+    if(aiBadge && !stage.contains(aiBadge)) stage.appendChild(aiBadge);   /* survives step changes */
+    if(m.kind==='vid'){
+      node.currentTime=0;
+      if(/m6_needle/.test(m.src)){ node.addEventListener('timeupdate', gunTick); }
+      const p=node.play(); if(p&&p.catch)p.catch(()=>{});
+    }
     stage.setAttribute('aria-label', m.alt||'');
   }
 
@@ -215,6 +239,11 @@
       fig.appendChild(img); fig.appendChild(cap);
       printSheet.appendChild(fig);
     });
+    const note = document.createElement('p');
+    note.className = 'print-note';
+    note.setAttribute('data-i18n', 'k262');
+    note.textContent = 'All pictures in this guide are AI-generated illustrations; no real patient is shown.';
+    printSheet.appendChild(note);
   }
   langPick && langPick.addEventListener('change',()=>{ applyLang(langPick.value); if(audioOn) playStepAudio(cur); else stopClip(); });
 

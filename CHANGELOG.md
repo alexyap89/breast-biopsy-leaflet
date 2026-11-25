@@ -1,3 +1,16 @@
+## [v1.1.0] — 2026-11-17 (AI disclosure, clearer mosaic, biopsy-gun click)
+
+- **AI disclosure on the media**: a persistent badge pinned to the stage ("AI-generated
+  illustration", i18n key `k261`, all six locales) and a footer line on the print sheet
+  (`k262`). Previously the only disclosure was a sentence in the intro copy.
+- **Mosaic made unmistakable** (owner feedback): block 2.4 % of width, radius 7.8 %,
+  sharper feather. Applied to the four photoreal stills and the three clips; areola stays
+  readable. Un-mosaicked set remains archived (see RESTORE-UNMOSAICKED-MEDIA.md).
+- **Biopsy-gun click** synthesised locally (`assets/click.mp3`, no licence risk; two
+  transients — cock + fire, 35 % of energy in the 2–6 kHz band) and played in sync with
+  step 6's clip at t≈0.55 s, only when narration is on.
+- Media version bumped `?v=16`, click `?cv=2`.
+
 ## [v1.0.0] — 2026-11-16 (media edition goes live)
 
 - `index.html` is now the **media edition** (nine steps: graded stills + five motion beats,
