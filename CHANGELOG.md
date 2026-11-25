@@ -1,3 +1,15 @@
+### Deploy repair — 2026-11-26 (overnight)
+- The first push of v1.1.0 **failed to deploy**: `upload-pages-artifact` reported success
+  (7.8 MB, artifact 15047024890) but `deploy-pages` found zero artifacts — the Node-24
+  forced runtime for these actions. Fixed by pinning `FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true`
+  and a 10 s settle step before deploy. Run 45668348215 succeeded; verified live.
+- AI badge moved from the media's top-right (where the sticky header covered it) to the
+  bottom-right; verified by clipped CDP capture of its own rect.
+- Mosaic re-applied **once** from the clean archive originals (the first pass was
+  coarse-over-fine); media version `?v=17`.
+- Click verified functionally on the live page: with narration on, crossing t≈0.6 s in
+  step 6 requests `click.mp3` (play() intercepted: `["step04","m6_needle","step06","click"]`).
+
 ## [v1.1.0] — 2026-11-17 (AI disclosure, clearer mosaic, biopsy-gun click)
 
 - **AI disclosure on the media**: a persistent badge pinned to the stage ("AI-generated
