@@ -10,6 +10,11 @@ permissions:
 concurrency:
   group: pages
   cancel-in-progress: true
+env:
+  # checkout/configure-pages/upload-artifact/deploy-pages still target Node 20; on the
+  # forced Node 24 runtime upload-pages-artifact reports success while deploy-pages then
+  # sees zero artifacts (run 45667936191). Pin them to Node 20.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true
 jobs:
   deploy:
     environment:
@@ -22,5 +27,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
+      - name: Settle before deploy (artifact index race)
+        run: sleep 10
       - id: deployment
         uses: actions/deploy-pages@v4
