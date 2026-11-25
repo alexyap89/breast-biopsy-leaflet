@@ -31,7 +31,7 @@ video.mediaEl{animation:kbv 12s ease-out both}
 
 /* AI disclosure badge, pinned on the media itself */
 .media-stage{position:relative}
-.ai-badge{position:absolute;top:10px;right:10px;z-index:3;
+.ai-badge{position:absolute;bottom:10px;right:10px;top:auto;z-index:3;
   font-size:12px;line-height:1;letter-spacing:.02em;
   padding:7px 10px;border-radius:999px;
   background:rgba(10,16,24,.88);color:#fff;border:1px solid rgba(255,255,255,.38);font-weight:600;
