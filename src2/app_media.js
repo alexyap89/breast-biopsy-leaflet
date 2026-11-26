@@ -55,12 +55,16 @@
   /* Synthesised biopsy-gun click (cock + fire), fired in sync with step 6's clip. */
   const gunClick = new Audio('assets/click.mp3?cv=9');
   gunClick.preload = 'auto'; gunClick.volume = 0.9;   /* loud but leaves headroom over narration */
+  /* the device fires twice in the copy ("each time ... a thin core is taken"), so the
+     sound fires at most twice per visit — not on every loop of the clip */
+  let gunShots = 0;
+  const GUN_MAX_SHOTS = 2;
   function gunTick(e){
     const v = e.target;
     if(!audioOn || !v || v.tagName!=='VIDEO') return;
     if(v.currentTime < 0.20){ v.__clicked = false; return; }
-    if(!v.__clicked && v.currentTime >= 0.55){
-      v.__clicked = true;
+    if(!v.__clicked && v.currentTime >= 0.55 && gunShots < GUN_MAX_SHOTS){
+      v.__clicked = true; gunShots++;
       try{ gunClick.currentTime = 0; const p = gunClick.play(); if(p&&p.catch) p.catch(()=>{}); }catch(_){}
     }
   }
@@ -90,7 +94,7 @@
     if(aiBadge && !stage.contains(aiBadge)) stage.appendChild(aiBadge);   /* survives step changes */
     if(m.kind==='vid'){
       node.currentTime=0;
-      if(/m6_needle/.test(m.src)){ node.addEventListener('timeupdate', gunTick); }
+      if(/m6_needle/.test(m.src)){ gunShots = 0; node.addEventListener('timeupdate', gunTick); }
       const p=node.play(); if(p&&p.catch)p.catch(()=>{});
     }
     stage.setAttribute('aria-label', m.alt||'');
