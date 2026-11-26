@@ -54,7 +54,7 @@
   let cur=0, playing=false, guided=false, timer=null, curClip=null;
   /* Synthesised biopsy-gun click (cock + fire), fired in sync with step 6's clip. */
   const gunClick = new Audio('assets/click.mp3?cv=5');
-  gunClick.preload = 'auto'; gunClick.volume = 1.0;
+  gunClick.preload = 'auto'; gunClick.volume = 0.9;   /* loud but leaves headroom over narration */
   function gunTick(e){
     const v = e.target;
     if(!audioOn || !v || v.tagName!=='VIDEO') return;
