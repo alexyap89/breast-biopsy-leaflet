@@ -45,7 +45,7 @@
      media:{kind:'img', src:'assets/b7_clip.jpg?v=18', alt:"Side-view illustration: a small metallic marker clip sits inside the grey lump; a magnified inset shows the clip."}},
     {t:"Pressure, then a dressing",
      n:"Firm pressure is held over the spot to stop any bleeding, then a dressing is applied. It stays on, and stays dry, for 48 hours.",
-     media:{kind:'vid', src:'assets/m8_dressing.mp4?v=18', poster:'assets/b8_dressing.jpg?v=18', alt:"A blue-gloved hand presses a folded square of sterile gauze firmly onto the skin beside the areola; a strip of tape lies ready on the drape."}},
+     media:{kind:'img', src:'assets/b8_dressing.jpg?v=18', alt:"A blue-gloved hand presses a folded square of sterile gauze firmly onto the skin beside the areola; a strip of tape lies ready on the drape."}},
     {t:"Afterwards, and your results",
      n:"The numbness wears off within a few hours. Soreness and bruising settle over a few days to two weeks. Use paracetamol if you need it, not ibuprofen or aspirin. Results usually take about two weeks.",
      media:{kind:'img', src:'assets/b9_after.jpg?v=18', alt:"From below, the masked, capped clinician looks down with a warm smile and a reassuring nod; a band of blue drape runs along the bottom of the frame."}},
