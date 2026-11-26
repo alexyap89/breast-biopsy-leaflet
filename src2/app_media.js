@@ -38,7 +38,7 @@
      n:"The anaesthetic has taken effect and the skin is numb. A tiny nick is made in the skin at the spot the needle will enter, so the biopsy needle passes through cleanly.",
      media:{kind:'img', src:'assets/b5_nick.jpg?v=19', alt:"A blue-gloved hand holds a fine scalpel blade against the numb skin, making a tiny nick at the entry spot."}},
     {t:"The biopsy needle goes in",
-     n:"The biopsy needle is introduced under ultrasound guidance and guided into the lump. When the device fires you will hear a loud click and see a quick movement; each time, a thin core of tissue is taken. The needle is drawn back and re-introduced until enough tissue has been collected.",
+     n:"The biopsy needle is introduced under ultrasound guidance and guided into the lump. When the device fires you will hear a loud click and feel a quick movement; each time, a thin core of tissue is taken. The needle is drawn back and re-introduced until enough tissue has been collected.",
      media:{kind:'vid', src:'assets/m6_needle.mp4?v=19', poster:'assets/b6_needle.jpg?v=19', alt:"Beside the flat grey linear ultrasound probe, the biopsy needle advances into the skin beside the areola and stops, the skin dimpling at the entry point."}},
     {t:"The marker clip",
      n:"A very small clip is left at the spot, so the area can be found again later. You cannot feel it, and it is safe to have an MRI scan with it in place.",
@@ -58,16 +58,18 @@
   /* the device fires twice in the copy ("each time ... a thin core is taken"), so the
      sound fires at most twice per visit — not on every loop of the clip */
   let gunShots = 0;
-  const GUN_MAX_SHOTS = 2;
-  function gunTick(e){
-    const v = e.target;
-    if(!audioOn || !v || v.tagName!=='VIDEO') return;
-    if(v.currentTime < 0.20){ v.__clicked = false; return; }
-    if(!v.__clicked && v.currentTime >= 0.55 && gunShots < GUN_MAX_SHOTS){
-      v.__clicked = true; gunShots++;
+  /* Firing sounds land on the words that describe them. Measured from the rendered
+     narration: "…you will hear a loud click…" begins at 8.11 s and the word "click"
+     lands at ~11.7 s; "each time, a thin core…" follows at ~12.9 s. */
+  const GUN_AT = [11.7, 12.9];
+  function gunOnNarration(a){
+    if(!audioOn || gunShots >= GUN_AT.length) return;
+    if(a.currentTime >= GUN_AT[gunShots]){
       try{ gunClick.currentTime = 0; const p = gunClick.play(); if(p&&p.catch) p.catch(()=>{}); }catch(_){}
+      gunShots++;
     }
   }
+
   const clipCache={}, mediaCache={};
 
   /* --- media stage -------------------------------------------------------- */
@@ -94,7 +96,7 @@
     if(aiBadge && !stage.contains(aiBadge)) stage.appendChild(aiBadge);   /* survives step changes */
     if(m.kind==='vid'){
       node.currentTime=0;
-      if(/m6_needle/.test(m.src)){ gunShots = 0; node.addEventListener('timeupdate', gunTick); }
+      if(/m6_needle/.test(m.src)){ gunShots = 0; }
       const p=node.play(); if(p&&p.catch)p.catch(()=>{});
     }
     stage.setAttribute('aria-label', m.alt||'');
@@ -148,7 +150,7 @@
     if(!code || localeBroken[code]) return null;
     if(typeof AUDIO_LOCALES==='undefined') return null;
     const set=AUDIO_LOCALES[code];
-    const v='?av=3';
+    const v='?av=4';
     return (set && set[String(i+1)]) ? set[String(i+1)]+v : null;
   }
   function getClip(i){
@@ -158,6 +160,7 @@
     const src=localeSrc(code,i);
     if(src){
       const a=new Audio(); a.src=src;
+      if(i===5) a.addEventListener('timeupdate', () => gunOnNarration(a));
       a.addEventListener('ended',clipEnd);
       a.addEventListener('error',()=>{ localeBroken[code]=true; delete clipCache[key]; if(curClip===a) playStepAudio(i); });
       clipCache[key]=a; return a;
