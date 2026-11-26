@@ -66,11 +66,11 @@
   "step06": {
    "step": 6,
    "title": "The biopsy needle goes in",
-   "characters": 234,
-   "words": 40,
-   "duration_s": 17.86,
-   "bytes": 107136,
-   "wpm": 134.4,
+   "characters": 292,
+   "words": 52,
+   "duration_s": 21.89,
+   "bytes": 131328,
+   "wpm": 142.5,
    "engine": "edge"
   },
   "step07": {
@@ -105,8 +105,8 @@
   }
  },
  "total": {
-  "duration_s": 129.49,
-  "bytes": 776880,
+  "duration_s": 133.52,
+  "bytes": 801072,
   "steps": 9
  }
 }

@@ -33,7 +33,7 @@
      a:{form:1, xray:0.4, lumpHi:0.8, probe:1, needle:0, passes:0, clip:0, dressing:0, scalpel:1, labels:1}},
 
     {t:"The biopsy needle goes in",
-     n:"The biopsy needle is introduced under ultrasound guidance and guided into the lump. Each time the device fires, a thin core of tissue is taken; the needle is drawn back and re-introduced until enough tissue has been collected.",
+     n:"The biopsy needle is introduced under ultrasound guidance and guided into the lump. When the device fires you will hear a loud click and see a quick movement; each time, a thin core of tissue is taken. The needle is drawn back and re-introduced until enough tissue has been collected.",
      a:{form:1, xray:0.35, lumpHi:1, probe:1, needle:1, passes:1, clip:0, dressing:0, labels:1}},
 
     {t:"The marker clip",
